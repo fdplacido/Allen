@@ -115,7 +115,7 @@ void Stream::run_monte_carlo_test(
     std::tuple<
       const uint&,
       const uint&,
-      const HostBuffers&,
+      HostBuffers&,
       const Constants&,
       const CheckerInvoker&
     >

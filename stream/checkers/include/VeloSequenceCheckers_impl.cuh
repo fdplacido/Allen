@@ -8,9 +8,9 @@ template<>
 void SequenceVisitor::check<consolidate_velo_tracks_t>(
   const uint& start_event_offset,
   const uint& number_of_events_requested,
-  const HostBuffers& host_buffers,
+  HostBuffers& host_buffers,
   const Constants& constants,
-  const CheckerInvoker& checker_invoker) const
+  const CheckerInvoker& checker_invoker)
 {
   info_cout << "Checking GPU Velo tracks" << std::endl;
 

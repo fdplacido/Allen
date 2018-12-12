@@ -8,9 +8,9 @@ template<>
 void SequenceVisitor::check<consolidate_ut_tracks_t>(
   const uint& start_event_offset,
   const uint& number_of_events_requested,
-  const HostBuffers& host_buffers,
+  HostBuffers& host_buffers,
   const Constants& constants,
-  const CheckerInvoker& checker_invoker) const
+  const CheckerInvoker& checker_invoker)
 {
   info_cout << "Checking Velo+UT tracks" << std::endl;
 
@@ -25,16 +25,16 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
     host_buffers.host_ut_qop,
     number_of_events_requested);
 
-  std::vector< std::vector< std::vector< uint32_t > > > scifi_ids_events = checker_invoker.check<TrackCheckerVeloUT>(start_event_offset, tracks);
-  
-  for ( int j = 0; j < number_of_events_requested; j++ ) {
-    debug_cout << "UT: At event " << j << " found " << scifi_ids_events[j].size() << " tracks" <<  std::endl;
-    for ( int i = 0; i < scifi_ids_events[j].size(); ++i ) {
-      debug_cout << "at track " << i << " found " << scifi_ids_events[j][i].size() << " IDs" << std::endl;
-      // for ( const auto id : scifi_ids_events[j][i] ) {
-      //   debug_cout << "\t ID = " << std::hex << id << std::dec << std::endl;
-      // }
-    }
-  }
+  host_buffers.scifi_ids_ut_tracks = checker_invoker.check<TrackCheckerVeloUT>(start_event_offset, tracks);
+
+  // for ( int j = 0; j < number_of_events_requested; j++ ) {
+  //   debug_cout << "UT: At event " << j << " found " << host_buffers.scifi_ids_ut_tracks[j].size() << " tracks" <<  std::endl;
+  //   for ( int i = 0; i < host_buffers.scifi_ids_ut_tracks[j].size(); ++i ) {
+  //     debug_cout << "at track " << i << " found " << host_buffers.scifi_ids_ut_tracks[j][i].size() << " IDs" << std::endl;
+  //     // for ( const auto id : host_buffers.scifi_ids_ut_tracks[j][i] ) {
+  //     //   debug_cout << "\t ID = " << std::hex << id << std::dec << std::endl;
+  //     // }
+  //   }
+  // }
   
 }
