@@ -172,7 +172,10 @@ void TrackChecker::Histos::initHistos(
 
   // histos for ghost rate
   h_ghost_nPV = TH1D("nPV_Ghosts", "nPV_Ghosts", 21, -0.5, 20.5);
-  h_total_nPV = TH1D("nPV_Total", "nPV_Total", 21, -0.5, 20.5);
+
+
+ 
+ h_total_nPV = TH1D("nPV_Total", "nPV_Total", 21, -0.5, 20.5);
 #endif
 }
 
@@ -230,7 +233,7 @@ void TrackChecker::Histos::fillGhostHistos(const MCParticle &mcp) {
 #endif
 }
 
-void TrackChecker::operator()(const trackChecker::Tracks &tracks,
+std::vector<uint32_t> TrackChecker::operator()(const trackChecker::Tracks &tracks,
                               const MCAssociator &mcassoc,
                               const MCParticles &mcps) {
   // register MC particles
@@ -244,6 +247,7 @@ void TrackChecker::operator()(const trackChecker::Tracks &tracks,
   // go through tracks
   const std::size_t ntracksperevt = tracks.size();
   std::size_t nghostsperevt = 0;
+  std::vector<uint32_t> matched_mcp_keys;
   for (auto track : tracks) {
     histos.fillTotalHistos(mcps[0]);
     // check LHCbIDs for MC association
@@ -252,6 +256,7 @@ void TrackChecker::operator()(const trackChecker::Tracks &tracks,
     if (!assoc) {
       ++nghostsperevt;
       histos.fillGhostHistos(mcps[0]);
+      matched_mcp_keys.push_back(0xFFFFFFFF);
       continue;
     }
     // have MC association, check weight
@@ -259,6 +264,7 @@ void TrackChecker::operator()(const trackChecker::Tracks &tracks,
     if (weight < m_minweight) {
       ++nghostsperevt;
       histos.fillGhostHistos(mcps[0]);
+      matched_mcp_keys.push_back(0xFFFFFFFF);
       continue;
     }
     // okay, sufficient to proceed...
@@ -267,6 +273,9 @@ void TrackChecker::operator()(const trackChecker::Tracks &tracks,
     for (auto &report : m_categories) {
       report(track, mcp, weight);
     }
+    // write out matched MCP key
+    matched_mcp_keys.push_back(mcp.key);
+    
     // fill histograms of reconstructible MC particles in various categories
     for (auto &histo_cat : m_histo_categories) {
       histos.fillReconstructedHistos(mcp, histo_cat);
@@ -284,4 +293,6 @@ void TrackChecker::operator()(const trackChecker::Tracks &tracks,
         (float(nghostsperevt) / float(ntracksperevt)) / float(m_nevents);
   }
   m_nghosts += nghostsperevt, m_ntracks += ntracksperevt;
+
+  return matched_mcp_keys;
 }

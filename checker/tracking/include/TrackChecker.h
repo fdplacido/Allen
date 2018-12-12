@@ -132,7 +132,7 @@ protected:
 public:
   TrackChecker(){};
   ~TrackChecker();
-  void operator()(const trackChecker::Tracks &tracks,
+  std::vector<uint32_t> operator()(const trackChecker::Tracks &tracks,
                   const MCAssociator &mcassoc, const MCParticles &mcps);
   const std::vector<HistoCategory>& histo_categories() {
     return m_histo_categories;

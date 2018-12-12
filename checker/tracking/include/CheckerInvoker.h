@@ -14,7 +14,7 @@ struct CheckerInvoker {
   bool check_events;
   bool is_mc_folder_populated;
   MCEvents mc_events;
-
+  
   CheckerInvoker (
     const std::string& param_mc_folder,
     const std::string& param_mc_pv_folder,
@@ -36,16 +36,16 @@ struct CheckerInvoker {
   std::tuple<bool, MCEvents> read_mc_folder() const;
 
   template<typename T>
-  void check(
+  std::vector< std::vector< std::vector<uint32_t> > > check(
     const uint start_event_offset,
     const std::vector<trackChecker::Tracks>& tracks) const
   {
+    std::vector< std::vector< std::vector<uint32_t> > > scifi_ids_events;
     if (is_mc_folder_populated) {
       T trackChecker {};
 #ifdef WITH_ROOT
       trackChecker.histos.initHistos(trackChecker.histo_categories());
 #endif
-
       for (int evnum = 0; evnum < mc_events.size(); ++evnum) {
         const auto& mc_event = mc_events[evnum];
         const auto& event_tracks = tracks[evnum];
@@ -53,8 +53,27 @@ struct CheckerInvoker {
         const auto& mcps = mc_event.mc_particles<T>();
         MCAssociator mcassoc {mcps};
 
-        trackChecker(event_tracks, mcassoc, mcps);
-
+        std::vector<uint32_t> matched_mcp_keys = trackChecker(event_tracks, mcassoc, mcps);
+        std::vector< std::vector<uint32_t> > scifi_ids_tracks;
+        for ( const auto key : matched_mcp_keys ) {
+          std::vector<uint32_t> scifi_ids;
+          if ( !(key == 0xFFFFFF) ) { // track was not matched to an MCP
+            for ( const auto mcp : mc_event.scifi_mcps ) {
+              if ( mcp.key == key ) { // found matched MCP
+                for ( const auto id : mcp.hits ) {
+                  const uint32_t detector_id = (id >> 20) & 0xFFF;
+                  if ( detector_id == 0xa00 ) { // hit in the SciFi
+                    scifi_ids.push_back(id);
+                  }
+                }
+              }
+            }
+          }
+          scifi_ids_tracks.push_back(scifi_ids);
+        }
+      
+        scifi_ids_events.push_back(scifi_ids_tracks);
+        
         // Check all tracks for duplicate LHCb IDs
         for (int i_track = 0; i_track < event_tracks.size(); ++i_track) {
           const auto& track = event_tracks[i_track];
@@ -74,5 +93,6 @@ struct CheckerInvoker {
         }
       }
     }
+    return scifi_ids_events;
   }
 };

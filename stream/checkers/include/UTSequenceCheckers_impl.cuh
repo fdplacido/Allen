@@ -25,5 +25,16 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
     host_buffers.host_ut_qop,
     number_of_events_requested);
 
-  checker_invoker.check<TrackCheckerVeloUT>(start_event_offset, tracks);
+  std::vector< std::vector< std::vector< uint32_t > > > scifi_ids_events = checker_invoker.check<TrackCheckerVeloUT>(start_event_offset, tracks);
+  
+  for ( int j = 0; j < number_of_events_requested; j++ ) {
+    debug_cout << "UT: At event " << j << " found " << scifi_ids_events[j].size() << " tracks" <<  std::endl;
+    for ( int i = 0; i < scifi_ids_events[j].size(); ++i ) {
+      debug_cout << "at track " << i << " found " << scifi_ids_events[j][i].size() << " IDs" << std::endl;
+      // for ( const auto id : scifi_ids_events[j][i] ) {
+      //   debug_cout << "\t ID = " << std::hex << id << std::dec << std::endl;
+      // }
+    }
+  }
+  
 }
