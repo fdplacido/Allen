@@ -265,6 +265,20 @@ typedef std::tuple<
     dev_ut_track_hit_number,
     dev_ut_qop,
     dev_ut_track_velo_indices
+  >,
+  AlgorithmDependencies<cpu_scifi_momentum_forward_t,
+    dev_scifi_tracks,
+    dev_atomics_scifi,
+    dev_scifi_hits,
+    dev_scifi_hit_count,
+    dev_atomics_velo,
+    dev_velo_track_hit_number,
+    dev_velo_states,
+    dev_atomics_ut,
+    dev_ut_track_hits,
+    dev_ut_track_hit_number,
+    dev_ut_qop,
+    dev_ut_track_velo_indices
   >
 > algorithms_dependencies_t;
 
