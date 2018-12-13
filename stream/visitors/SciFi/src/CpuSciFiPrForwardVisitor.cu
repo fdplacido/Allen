@@ -28,20 +28,19 @@ void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
   cudaEventSynchronize(cuda_generic_event);
 
   // Run Forward on x86 architecture
-  std::vector<uint> host_scifi_hits (host_buffers.scifi_hits_uints());
-  std::vector<uint> host_scifi_hit_count (2 * runtime_options.number_of_events * SciFi::Constants::n_mats + 1);
-    
+  host_buffers.host_scifi_hits.reserve(host_buffers.scifi_hits_uints());
+  host_buffers.host_scifi_hit_count.reserve(2 * runtime_options.number_of_events * SciFi::Constants::n_mats + 1);
   host_buffers.scifi_tracks_events.reserve(runtime_options.number_of_events * SciFi::Constants::max_tracks);
 
   cudaCheck(cudaMemcpyAsync(
-    host_scifi_hits.data(),
+    host_buffers.host_scifi_hits.data(),
     arguments.offset<dev_scifi_hits>(),
     arguments.size<dev_scifi_hits>(),
     cudaMemcpyDeviceToHost,
     cuda_stream));
 
   cudaCheck(cudaMemcpyAsync(
-    host_scifi_hit_count.data(),
+    host_buffers.host_scifi_hit_count.data(),
     arguments.offset<dev_scifi_hit_count>(),
     arguments.size<dev_scifi_hit_count>(),
     cudaMemcpyDeviceToHost,
@@ -51,8 +50,8 @@ void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
   int rv = state.invoke(
     host_buffers.scifi_tracks_events.data(),
     host_buffers.host_atomics_scifi,
-    host_scifi_hits.data(),
-    host_scifi_hit_count.data(),
+    host_buffers.host_scifi_hits.data(),
+    host_buffers.host_scifi_hit_count.data(),
     constants.host_scifi_geometry,
     constants.host_inv_clus_res, 
     host_buffers.host_atomics_velo,

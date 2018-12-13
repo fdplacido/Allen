@@ -17,7 +17,7 @@ MiniState state_at_z(const MiniState state, const float z) {
   return extrap_state;
 }
 
-int run_momentum_forward_on_CPU (
+int run_momentum_forward_on_CPU(
   SciFi::TrackHits* host_scifi_tracks,
   int* host_scifi_n_tracks,
   const uint* host_scifi_hits,
@@ -48,7 +48,8 @@ int run_momentum_forward_on_CPU (
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
   double xf, yf, txf, tyf;
-
+  float res_x;
+  
   t_Forward_tracks->Branch("qop", &qop);
   t_Forward_tracks->Branch("state_x", &state_x);
   t_Forward_tracks->Branch("state_y", &state_y);
@@ -69,6 +70,7 @@ int run_momentum_forward_on_CPU (
   t_extrap->Branch("yf", &yf);
   t_extrap->Branch("txf", &txf);
   t_extrap->Branch("tyf", &tyf);
+  t_extrap->Branch("res_x", &res_x);
 #endif
 
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
@@ -137,11 +139,15 @@ int run_momentum_forward_on_CPU (
     double tx,ty,qop;
 
     for(int i_veloUT_track = 0; i_veloUT_track < n_veloUT_tracks_event; ++i_veloUT_track ) {
+      // veloUT track variables
       const float qop = ut_tracks.qop[i_veloUT_track];
       const int i_velo_track = ut_tracks.velo_track[i_veloUT_track];
       const uint velo_states_index = event_tracks_offset + i_velo_track;
       const MiniState velo_state {velo_states, velo_states_index};
       
+      // SciFi IDs for matched veloUT track
+      const std::vector<uint32_t> true_scifi_ids = scifi_ids_ut_tracks[i_event][i_veloUT_track];
+
       // extrapolate state to last UT plane (needed as input for parametrization)
       const int z_last_UT_plane = 2642.f;
       MiniState UT_state = state_at_z(velo_state, z_last_UT_plane);
@@ -153,8 +159,28 @@ int run_momentum_forward_on_CPU (
       const float yi = UT_state.y;
       const float txi = UT_state.tx;
       const float tyi = UT_state.ty;
-      //double xf, yf, txf, tyf;
       if ( extrap(params.ZINI,params.ZFIN,xi,yi,txi,tyi,qop,params.BEND,params.QuadraticInterpolation,xf,yf,txf,tyf, params) ) {
+        // find x hit(s) in first layer of first SciFi station that 
+        // were truth matched to the veloUT track
+        // first layer = zone 0 + zone 1
+        int x_zone_offset_begin = scifi_hit_count.zone_offset(0);
+        int n_hits = scifi_hit_count.zone_number_of_hits(0);
+        n_hits += scifi_hit_count.zone_number_of_hits(1);
+        bool match = false;
+        for ( const auto true_id : true_scifi_ids ) {
+          for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) {
+            const int hit_index = x_zone_offset_begin + i_hit;
+            const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+            if ( true_id == lhcbid ) {
+              res_x = xf - scifi_hits.x0[hit_index];
+              match = true;
+              continue;
+            }
+          }
+        }
+        if (!match)
+          res_x = -10000;
+        
         t_extrap->Fill();
       }
     }

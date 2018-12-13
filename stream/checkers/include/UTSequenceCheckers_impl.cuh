@@ -1,4 +1,5 @@
 #include "VeloUT.cuh"
+#include "RunMomentumForwardCPU.h"
 
 /**
  * @brief Specialization for any Velo reconstruction algorithm invoking
@@ -27,14 +28,23 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
 
   host_buffers.scifi_ids_ut_tracks = checker_invoker.check<TrackCheckerVeloUT>(start_event_offset, tracks);
 
-  // for ( int j = 0; j < number_of_events_requested; j++ ) {
-  //   debug_cout << "UT: At event " << j << " found " << host_buffers.scifi_ids_ut_tracks[j].size() << " tracks" <<  std::endl;
-  //   for ( int i = 0; i < host_buffers.scifi_ids_ut_tracks[j].size(); ++i ) {
-  //     debug_cout << "at track " << i << " found " << host_buffers.scifi_ids_ut_tracks[j][i].size() << " IDs" << std::endl;
-  //     // for ( const auto id : host_buffers.scifi_ids_ut_tracks[j][i] ) {
-  //     //   debug_cout << "\t ID = " << std::hex << id << std::dec << std::endl;
-  //     // }
-  //   }
-  // }
+  // Run MomentumForward on x86
+ 
+  run_momentum_forward_on_CPU(
+    host_buffers.scifi_tracks_events.data(),
+    host_buffers.host_atomics_scifi,
+    host_buffers.host_scifi_hits.data(),
+    host_buffers.host_scifi_hit_count.data(),
+    constants.host_scifi_geometry,
+    constants.host_inv_clus_res, 
+    host_buffers.host_atomics_velo,
+    host_buffers.host_velo_track_hit_number,
+    host_buffers.host_velo_states,
+    host_buffers.host_atomics_ut,
+    host_buffers.host_ut_track_hit_number,
+    host_buffers.host_ut_qop,
+    host_buffers.host_ut_track_velo_indices,
+    host_buffers.scifi_ids_ut_tracks,
+    number_of_events_requested);
   
 }
