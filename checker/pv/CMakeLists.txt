@@ -15,4 +15,5 @@ cuda_add_library(PVChecking SHARED
 
 if(ROOT_FOUND)
   target_compile_definitions(PVChecking PUBLIC WITH_ROOT)
+  target_link_libraries(PVChecking ${ROOT_LIBRARIES})
 endif()

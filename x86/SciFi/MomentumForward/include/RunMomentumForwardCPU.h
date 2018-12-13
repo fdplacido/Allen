@@ -18,6 +18,9 @@
 #include "VeloConsolidated.cuh"
 #include "UTConsolidated.cuh"
 #include "SciFiDefinitions.cuh"
+#include "Parametrization.h"
+
+MiniState state_at_z(const MiniState state, const float z);
 
 int run_momentum_forward_on_CPU (
   SciFi::TrackHits* host_scifi_tracks_events,
@@ -33,6 +36,7 @@ int run_momentum_forward_on_CPU (
   const uint* host_ut_track_hit_number,
   const float* host_ut_qop,
   const uint* host_ut_track_velo_indices,
+  const std::vector< std::vector< std::vector< uint32_t > > > scifi_ids_ut_tracks,
   const uint number_of_events);
 
 CPU_ALGORITHM(run_momentum_forward_on_CPU, cpu_scifi_momentum_forward_t)

@@ -6,6 +6,17 @@
 #include "TTree.h"
 #endif
 
+// straight line extrapolation of MiniState to other z position
+MiniState state_at_z(const MiniState state, const float z) {
+  MiniState extrap_state;
+  extrap_state.tx = state.tx;
+  extrap_state.ty = state.ty;
+  extrap_state.x = state.x + (z-state.z) * state.tx;
+  extrap_state.y = state.y + (z-state.z) * state.ty;
+  extrap_state.z = z;
+  return extrap_state;
+}
+
 int run_momentum_forward_on_CPU (
   SciFi::TrackHits* host_scifi_tracks,
   int* host_scifi_n_tracks,
@@ -20,6 +31,7 @@ int run_momentum_forward_on_CPU (
   const uint* host_ut_track_hit_number,
   const float* host_ut_qop,
   const uint* host_ut_track_velo_indices,
+  const std::vector< std::vector< std::vector< uint32_t > > > scifi_ids_ut_tracks,
   const uint number_of_events
 ) {
 
@@ -29,11 +41,13 @@ int run_momentum_forward_on_CPU (
   TTree *t_Forward_tracks = new TTree("Forward_tracks", "Forward_tracks");
   TTree *t_statistics = new TTree("statistics", "statistics");
   TTree *t_scifi_hits = new TTree("scifi_hits","scifi_hits");
+  TTree *t_extrap = new TTree("extrap","extrap");
   uint planeCode, LHCbID;
   float x0, z0, w, dxdy, dzdy, yMin, yMax;
   float qop;
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
+  double xf, yf, txf, tyf;
 
   t_Forward_tracks->Branch("qop", &qop);
   t_Forward_tracks->Branch("state_x", &state_x);
@@ -51,6 +65,10 @@ int run_momentum_forward_on_CPU (
   t_scifi_hits->Branch("dzdy", &dzdy);
   t_scifi_hits->Branch("yMin", &yMin);
   t_scifi_hits->Branch("yMax", &yMax);
+  t_extrap->Branch("xf", &xf);
+  t_extrap->Branch("yf", &yf);
+  t_extrap->Branch("txf", &txf);
+  t_extrap->Branch("tyf", &tyf);
 #endif
 
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
@@ -58,7 +76,7 @@ int run_momentum_forward_on_CPU (
     // Velo consolidated types
     const Velo::Consolidated::Tracks velo_tracks {(uint*) host_velo_tracks_atomics, (uint*)host_velo_track_hit_number, i_event, number_of_events};
     const uint event_tracks_offset = velo_tracks.tracks_offset(i_event);
-    const Velo::Consolidated::States host_velo_states_event {(char*)host_velo_states, velo_tracks.total_number_of_tracks};
+    const Velo::Consolidated::States velo_states {(char*)host_velo_states, velo_tracks.total_number_of_tracks};
 
     // UT consolidated types
     UT::Consolidated::Tracks ut_tracks {
@@ -108,8 +126,39 @@ int run_momentum_forward_on_CPU (
     }
 #endif
 
-    // To Do: place momentum forward algo here
+    /* etrapolation to first SciFi station using parametrization*/
+    // read coefficients
+    char name_coef[200] = "/home/dvombruc/Allen/x86/SciFi/MomentumForward/include/coefs.txt";
+    parameters params;
+    ReadCoef(name_coef, params);
+    params.Txmax = params.Tymax = .25; params.Xmax = params.ZINI*params.Txmax; params.Ymax = params.ZINI*params.Tymax;
+    
+    // extrapolate veloUT tracks
+    double tx,ty,qop;
 
+    for(int i_veloUT_track = 0; i_veloUT_track < n_veloUT_tracks_event; ++i_veloUT_track ) {
+      const float qop = ut_tracks.qop[i_veloUT_track];
+      const int i_velo_track = ut_tracks.velo_track[i_veloUT_track];
+      const uint velo_states_index = event_tracks_offset + i_velo_track;
+      const MiniState velo_state {velo_states, velo_states_index};
+      
+      // extrapolate state to last UT plane (needed as input for parametrization)
+      const int z_last_UT_plane = 2642.f;
+      MiniState UT_state = state_at_z(velo_state, z_last_UT_plane);
+      
+      // propagation extrap() de ZINI a ZFIN
+      double eloss = 2./3e5;
+      
+      const float xi = UT_state.x;
+      const float yi = UT_state.y;
+      const float txi = UT_state.tx;
+      const float tyi = UT_state.ty;
+      //double xf, yf, txf, tyf;
+      if ( extrap(params.ZINI,params.ZFIN,xi,yi,txi,tyi,qop,params.BEND,params.QuadraticInterpolation,xf,yf,txf,tyf, params) ) {
+        t_extrap->Fill();
+      }
+    }
+    
 #ifdef WITH_ROOT
     // store qop in tree
     for ( int i_track = 0; i_track < *n_forward_tracks; ++i_track ) {
