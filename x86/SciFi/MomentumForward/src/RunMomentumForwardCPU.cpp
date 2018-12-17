@@ -58,7 +58,6 @@ int run_momentum_forward_on_CPU(
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
   double xf, yf, txf, tyf;
-  double xf_velo, yf_velo, txf_velo, tyf_velo;
   float res_x, res_x_velo, ut_qop;
   float UT_x, UT_y, UT_z, UT_tx, UT_ty;
   float velo_x_extrap, velo_tx;
@@ -83,12 +82,7 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("yf", &yf);
   t_extrap->Branch("txf", &txf);
   t_extrap->Branch("tyf", &tyf);
-  t_extrap->Branch("xf_velo", &xf);
-  t_extrap->Branch("yf_velo", &yf);
-  t_extrap->Branch("txf_velo", &txf);
-  t_extrap->Branch("tyf_velo", &tyf);
   t_extrap->Branch("res_x", &res_x);
-  t_extrap->Branch("res_x_velo", &res_x_velo);
   t_extrap->Branch("ut_qop", &ut_qop);
   t_ut_tracks->Branch("ut_x", &UT_x);
   t_ut_tracks->Branch("ut_y", &UT_y);
@@ -211,7 +205,7 @@ int run_momentum_forward_on_CPU(
         UT_state_from_velo.x, UT_state_from_velo.y,
         UT_state_from_velo.tx, UT_state_from_velo.ty,
         qop,params.BEND, params.QuadraticInterpolation,
-        xf_velo, yf_velo, txf_velo, tyf_velo, params);
+        xf, yf, txf, tyf, params);
 
       // int ret= extrap(
       //   params.ZINI, params.ZFIN,
@@ -219,33 +213,56 @@ int run_momentum_forward_on_CPU(
       //   UT_state.tx, UT_state.ty,
       //   qop, params.BEND, params.QuadraticInterpolation, 
       //   xf, yf, txf, tyf, params);
-      
+
+      if ( true_scifi_ids.size() == 0 )
+        continue;
+
       if ( ret ) {
       // find x hit(s) in first layer of first SciFi station that 
       // were truth matched to the veloUT track
       // first layer = zone 0 + zone 1
-        int x_zone_offset_begin = scifi_hit_count.zone_offset(0);
-        int n_hits = scifi_hit_count.zone_number_of_hits(0);
-        n_hits += scifi_hit_count.zone_number_of_hits(1);
+        int x_zone_offset_begin_0 = scifi_hit_count.zone_offset(0);
+        int n_hits_0 = scifi_hit_count.zone_number_of_hits(0);
+        int x_zone_offset_begin_1 = scifi_hit_count.zone_offset(1);
+        int n_hits_1 = scifi_hit_count.zone_number_of_hits(1);
+        int n_hits, x_zone_offset_begin;
+        if ( yf < 0 ) {
+          n_hits = n_hits_0;
+          x_zone_offset_begin = x_zone_offset_begin_0;
+        } else {
+          n_hits = n_hits_1;
+          x_zone_offset_begin = x_zone_offset_begin_1;
+        }
+          
+
         bool match = false;
         for ( const auto true_id : true_scifi_ids ) {
-          for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) {
-            const int hit_index = x_zone_offset_begin + i_hit;
+          for ( int i_hit = 0; i_hit < n_hits_0; ++i_hit ) { // check in zone 0
+            const int hit_index = x_zone_offset_begin_0 + i_hit;
             const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
             if ( true_id == lhcbid ) {
-              res_x_velo = xf_velo - scifi_hits.x0[hit_index];
+              res_x = xf - scifi_hits.x0[hit_index];
+              match = true;
+              break;
+            }
+          }
+          if ( match ) break;
+          for ( int i_hit = 0; i_hit < n_hits_1; ++i_hit ) { // check in zone 1
+            const int hit_index = x_zone_offset_begin_1 + i_hit;
+            const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+            if ( true_id == lhcbid ) {
               res_x = xf - scifi_hits.x0[hit_index];
               match = true;
               continue;
             }
-          }
+          } 
+          if ( match ) break;
         }
         if (!match) {
+          //debug_cout << "Size of matched ids = " << true_scifi_ids.size() << std::endl;
           res_x = -10000;
           res_x_velo = -10000;
         }
-      
-        //ut_qop = qop;
         t_extrap->Fill();
       }
     }
