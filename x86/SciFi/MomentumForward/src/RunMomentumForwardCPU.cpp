@@ -48,7 +48,7 @@ int run_momentum_forward_on_CPU(
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
   double xf, yf, txf, tyf;
-  float res_x;
+  float res_x, ut_qop;
   
   t_Forward_tracks->Branch("qop", &qop);
   t_Forward_tracks->Branch("state_x", &state_x);
@@ -71,6 +71,7 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("txf", &txf);
   t_extrap->Branch("tyf", &tyf);
   t_extrap->Branch("res_x", &res_x);
+  t_extrap->Branch("ut_qop", &ut_qop);
 #endif
 
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
@@ -181,6 +182,7 @@ int run_momentum_forward_on_CPU(
         if (!match)
           res_x = -10000;
         
+        ut_qop = qop;
         t_extrap->Fill();
       }
     }
