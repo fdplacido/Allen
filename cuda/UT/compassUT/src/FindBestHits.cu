@@ -161,7 +161,7 @@ __device__ BestParams pkick_fit(
   float rhs[2] = {wb * xMidField, wb * xMidField * UT::Constants::zDiff};
 
   // add hits
-  float last_z;
+  float last_z = -10000.f;
   #pragma unroll
   for (int i = 0; i < UT::Constants::n_layers; ++i) {
     int hit_index = best_hits[i];

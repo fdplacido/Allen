@@ -79,7 +79,7 @@ void ReadCoef(char *name, parameters& params)
   for(int ix=0; ix<params.Nbinx; ix++) for(int iy=0; iy<params.Nbiny; iy++) params.C[ix][iy].Read(coef,params.DEGX1,params.DEGX2,params.DEGY1,params.DEGY2);
 }
 
-int extrap(double zi,double zf,double xi,double yi,double txi,double tyi,double qop,double bend,int quad_interp,double& xf,double& yf,double& txf,double& tyf, const parameters params)
+int extrap(const double zi,const double zf,const double xi,const double yi,const double txi,const double tyi,const double qop,const double bend,const int quad_interp,double& xf,double& yf,double& txf,double& tyf, const parameters params)
 // extrapolation from plane zi to plane zf, from initial state (xi,yi,txi,tyi,qop) to final state (xf,yf,txf,tyf)
 // the bending from origin to zi is approximated by adding bend*qop to xi/zi.
 // quad_inperp (logical): if true, the quadratic interpolation is used (better, with a little bit more computations)

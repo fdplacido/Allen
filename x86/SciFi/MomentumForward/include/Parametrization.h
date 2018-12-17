@@ -49,6 +49,6 @@ struct parameters{
 void ReadCoef(char *name, parameters& params);
 
 /*-------------------------------------------------------------------------------------------------------------------------*/
-int extrap(double zi,double zf,double xi,double yi,double txi,double tyi,double qop,double bend,int quad_interp,double& xf,double& yf,double& txf,double& tyf, const parameters params);
+int extrap(const double zi,const double zf,const double xi,const double yi,const double txi,const double tyi,const double qop,const double bend,const int quad_interp,double& xf,double& yf,double& txf,double& tyf, const parameters params);
 
 

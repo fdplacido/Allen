@@ -17,6 +17,12 @@ MiniState state_at_z(const MiniState state, const float z) {
   return extrap_state;
 }
 
+// straight line extrapolation of y to other z position
+float y_at_z(const MiniState state, const float z) {
+  float yf = state.y + (z-state.z) * state.ty;
+  return yf;
+}
+
 int run_momentum_forward_on_CPU(
   SciFi::TrackHits* host_scifi_tracks,
   int* host_scifi_n_tracks,
@@ -52,8 +58,9 @@ int run_momentum_forward_on_CPU(
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
   double xf, yf, txf, tyf;
-  float res_x, ut_qop;
-  float UT_x, UT_tx, ut_tx_diff;
+  double xf_velo, yf_velo, txf_velo, tyf_velo;
+  float res_x, res_x_velo, ut_qop;
+  float UT_x, UT_y, UT_z, UT_tx, UT_ty;
   float velo_x_extrap, velo_tx;
   
   t_Forward_tracks->Branch("qop", &qop);
@@ -76,13 +83,20 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("yf", &yf);
   t_extrap->Branch("txf", &txf);
   t_extrap->Branch("tyf", &tyf);
+  t_extrap->Branch("xf_velo", &xf);
+  t_extrap->Branch("yf_velo", &yf);
+  t_extrap->Branch("txf_velo", &txf);
+  t_extrap->Branch("tyf_velo", &tyf);
   t_extrap->Branch("res_x", &res_x);
+  t_extrap->Branch("res_x_velo", &res_x_velo);
   t_extrap->Branch("ut_qop", &ut_qop);
   t_ut_tracks->Branch("ut_x", &UT_x);
+  t_ut_tracks->Branch("ut_y", &UT_y);
+  t_ut_tracks->Branch("ut_z", &UT_z);
   t_ut_tracks->Branch("ut_tx", &UT_tx);
+  t_ut_tracks->Branch("ut_ty", &UT_ty);
   t_ut_tracks->Branch("velo_x_extrap", &velo_x_extrap);
   t_ut_tracks->Branch("velo_tx", &velo_tx);
-  t_ut_tracks->Branch("ut_tx_dif", &ut_tx_diff);
   t_ut_tracks->Branch("ut_qop", &ut_qop);
 #endif
 
@@ -90,7 +104,7 @@ int run_momentum_forward_on_CPU(
 
     // Velo consolidated types
     const Velo::Consolidated::Tracks velo_tracks {(uint*) host_velo_tracks_atomics, (uint*)host_velo_track_hit_number, i_event, number_of_events};
-    const uint event_tracks_offset = velo_tracks.tracks_offset(i_event);
+    const uint velo_event_tracks_offset = velo_tracks.tracks_offset(i_event);
     const Velo::Consolidated::States velo_states {(char*)host_velo_states, velo_tracks.total_number_of_tracks};
 
     // UT consolidated types
@@ -103,6 +117,7 @@ int run_momentum_forward_on_CPU(
       number_of_events
       };
     const int n_veloUT_tracks_event = ut_tracks.number_of_tracks(i_event);
+    const int ut_event_tracks_offset = ut_tracks.tracks_offset(i_event);
     
     // SciFi non-consolidated types
     int* n_forward_tracks = host_scifi_n_tracks + i_event;
@@ -155,39 +170,60 @@ int run_momentum_forward_on_CPU(
       // veloUT track variables
       const float qop = ut_tracks.qop[i_veloUT_track];
       const int i_velo_track = ut_tracks.velo_track[i_veloUT_track];
-      const int track_index = event_tracks_offset + i_veloUT_track;
-      const MiniState velo_state {velo_states, track_index};
-      const float ut_x  = host_ut_x[track_index];
-      const float ut_tx = host_ut_tx[track_index];
-      const float ut_z  = host_ut_z[track_index];
+      const MiniState velo_state {velo_states, velo_event_tracks_offset + i_velo_track};
+      const int ut_track_index = ut_event_tracks_offset + i_veloUT_track;
+      const float ut_x  = host_ut_x[ut_track_index];
+      const float ut_tx = host_ut_tx[ut_track_index];
+      const float ut_z  = host_ut_z[ut_track_index];
 
       // SciFi IDs for matched veloUT track
       const std::vector<uint32_t> true_scifi_ids = scifi_ids_ut_tracks[i_event][i_veloUT_track];
-
+ 
+      // extrapolate velo y & ty to z of UT x and tx
+      // use ty from Velo state
+      MiniState state_UT;
+      state_UT.x = ut_x;
+      state_UT.tx = ut_tx;
+      state_UT.z = ut_z;
+      state_UT.ty = velo_state.ty;
+      state_UT.y = y_at_z(velo_state, ut_z);
+      
       // extrapolate state to last UT plane (needed as input for parametrization)
       const int z_last_UT_plane = 2642.f;
-      MiniState UT_state = state_at_z(velo_state, z_last_UT_plane);
+      MiniState UT_state_from_velo = state_at_z(velo_state, z_last_UT_plane);
+      MiniState UT_state = state_at_z(state_UT, z_last_UT_plane);
+      
 #ifdef WITH_ROOT
-      velo_x_extrap = UT_state.x;
-      velo_tx = UT_state.tx;
-      UT_x = ut_x;
-      UT_tx = ut_tx;
-      ut_tx_diff = ut_tx - velo_tx;
-      ut_qop = qop;
+      UT_x = UT_state.x;
+      UT_y = UT_state.y;
+      UT_z = UT_state.z;
+      UT_tx = UT_state.tx;
+      UT_ty = UT_state.ty;
+      ut_qop = host_ut_qop[ut_track_index];
       t_ut_tracks->Fill();
 #endif
 
       // propagation extrap() de ZINI a ZFIN
       double eloss = 2./3e5;
       
-      const float xi = UT_state.x;
-      const float yi = UT_state.y;
-      const float txi = UT_state.tx;
-      const float tyi = UT_state.ty;
-      if ( extrap(params.ZINI,params.ZFIN,xi,yi,txi,tyi,qop,params.BEND,params.QuadraticInterpolation,xf,yf,txf,tyf, params) ) {
-        // find x hit(s) in first layer of first SciFi station that 
-        // were truth matched to the veloUT track
-        // first layer = zone 0 + zone 1
+      int ret = extrap(
+        params.ZINI, params.ZFIN,
+        UT_state_from_velo.x, UT_state_from_velo.y,
+        UT_state_from_velo.tx, UT_state_from_velo.ty,
+        qop,params.BEND, params.QuadraticInterpolation,
+        xf_velo, yf_velo, txf_velo, tyf_velo, params);
+
+      // int ret= extrap(
+      //   params.ZINI, params.ZFIN,
+      //   UT_state.x, UT_state.y,
+      //   UT_state.tx, UT_state.ty,
+      //   qop, params.BEND, params.QuadraticInterpolation, 
+      //   xf, yf, txf, tyf, params);
+      
+      if ( ret ) {
+      // find x hit(s) in first layer of first SciFi station that 
+      // were truth matched to the veloUT track
+      // first layer = zone 0 + zone 1
         int x_zone_offset_begin = scifi_hit_count.zone_offset(0);
         int n_hits = scifi_hit_count.zone_number_of_hits(0);
         n_hits += scifi_hit_count.zone_number_of_hits(1);
@@ -197,23 +233,28 @@ int run_momentum_forward_on_CPU(
             const int hit_index = x_zone_offset_begin + i_hit;
             const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
             if ( true_id == lhcbid ) {
+              res_x_velo = xf_velo - scifi_hits.x0[hit_index];
               res_x = xf - scifi_hits.x0[hit_index];
               match = true;
               continue;
             }
           }
         }
-        if (!match)
+        if (!match) {
           res_x = -10000;
-        
+          res_x_velo = -10000;
+        }
+      
         //ut_qop = qop;
         t_extrap->Fill();
       }
     }
-    
+      
+      *n_forward_tracks = 0;
+      
 #ifdef WITH_ROOT
-    // store qop in tree
-    for ( int i_track = 0; i_track < *n_forward_tracks; ++i_track ) {
+      // store qop in tree
+      for ( int i_track = 0; i_track < *n_forward_tracks; ++i_track ) {
       qop = scifi_tracks_event[i_track].qop;
       state_x  = scifi_tracks_event[i_track].state.x;
       state_y  = scifi_tracks_event[i_track].state.y;
