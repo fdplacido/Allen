@@ -35,6 +35,9 @@ int run_momentum_forward_on_CPU (
   const int * host_atomics_ut,
   const uint* host_ut_track_hit_number,
   const float* host_ut_qop,
+  const float* host_ut_x,
+  const float* host_ut_tx,
+  const float* host_ut_z,
   const uint* host_ut_track_velo_indices,
   const std::vector< std::vector< std::vector< uint32_t > > > scifi_ids_ut_tracks,
   const uint number_of_events);

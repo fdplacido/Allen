@@ -16,6 +16,9 @@ __global__ void consolidate_ut_tracks(
   int* dev_atomics_ut,
   uint* dev_ut_track_hit_number,
   float* dev_ut_qop,
+  float* dev_ut_x,
+  float* dev_ut_tx,
+  float* dev_ut_z,
   uint* dev_ut_track_velo_indices,
   const UT::TrackHits* dev_veloUT_tracks,
   const uint* dev_unique_x_sector_layer_offsets

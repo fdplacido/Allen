@@ -344,6 +344,9 @@ __device__ void save_track(
   track.velo_track_index = i_track;
   track.qop = qop;
   track.hits_num = UT::Constants::n_layers;
+  track.x = best_params.x;
+  track.z = best_params.z;
+  track.tx = best_params.tx;
 
   // Adding hits to track
   for (int i = 0; i < UT::Constants::n_layers; ++i) {

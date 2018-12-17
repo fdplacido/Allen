@@ -30,6 +30,9 @@ int run_momentum_forward_on_CPU(
   const int * host_atomics_ut,
   const uint* host_ut_track_hit_number,
   const float* host_ut_qop,
+  const float* host_ut_x,
+  const float* host_ut_tx,
+  const float* host_ut_z,
   const uint* host_ut_track_velo_indices,
   const std::vector< std::vector< std::vector< uint32_t > > > scifi_ids_ut_tracks,
   const uint number_of_events
@@ -42,6 +45,7 @@ int run_momentum_forward_on_CPU(
   TTree *t_statistics = new TTree("statistics", "statistics");
   TTree *t_scifi_hits = new TTree("scifi_hits","scifi_hits");
   TTree *t_extrap = new TTree("extrap","extrap");
+  TTree *t_ut_tracks = new TTree("ut_tracks","ut_tracks");
   uint planeCode, LHCbID;
   float x0, z0, w, dxdy, dzdy, yMin, yMax;
   float qop;
@@ -49,6 +53,8 @@ int run_momentum_forward_on_CPU(
   float state_x, state_y, state_z, state_tx, state_ty;
   double xf, yf, txf, tyf;
   float res_x, ut_qop;
+  float UT_x, UT_tx, ut_tx_diff;
+  float velo_x_extrap, velo_tx;
   
   t_Forward_tracks->Branch("qop", &qop);
   t_Forward_tracks->Branch("state_x", &state_x);
@@ -72,6 +78,12 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("tyf", &tyf);
   t_extrap->Branch("res_x", &res_x);
   t_extrap->Branch("ut_qop", &ut_qop);
+  t_ut_tracks->Branch("ut_x", &UT_x);
+  t_ut_tracks->Branch("ut_tx", &UT_tx);
+  t_ut_tracks->Branch("velo_x_extrap", &velo_x_extrap);
+  t_ut_tracks->Branch("velo_tx", &velo_tx);
+  t_ut_tracks->Branch("ut_tx_dif", &ut_tx_diff);
+  t_ut_tracks->Branch("ut_qop", &ut_qop);
 #endif
 
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
@@ -143,16 +155,28 @@ int run_momentum_forward_on_CPU(
       // veloUT track variables
       const float qop = ut_tracks.qop[i_veloUT_track];
       const int i_velo_track = ut_tracks.velo_track[i_veloUT_track];
-      const uint velo_states_index = event_tracks_offset + i_velo_track;
-      const MiniState velo_state {velo_states, velo_states_index};
-      
+      const int track_index = event_tracks_offset + i_veloUT_track;
+      const MiniState velo_state {velo_states, track_index};
+      const float ut_x  = host_ut_x[track_index];
+      const float ut_tx = host_ut_tx[track_index];
+      const float ut_z  = host_ut_z[track_index];
+
       // SciFi IDs for matched veloUT track
       const std::vector<uint32_t> true_scifi_ids = scifi_ids_ut_tracks[i_event][i_veloUT_track];
 
       // extrapolate state to last UT plane (needed as input for parametrization)
       const int z_last_UT_plane = 2642.f;
       MiniState UT_state = state_at_z(velo_state, z_last_UT_plane);
-      
+#ifdef WITH_ROOT
+      velo_x_extrap = UT_state.x;
+      velo_tx = UT_state.tx;
+      UT_x = ut_x;
+      UT_tx = ut_tx;
+      ut_tx_diff = ut_tx - velo_tx;
+      ut_qop = qop;
+      t_ut_tracks->Fill();
+#endif
+
       // propagation extrap() de ZINI a ZFIN
       double eloss = 2./3e5;
       
@@ -182,7 +206,7 @@ int run_momentum_forward_on_CPU(
         if (!match)
           res_x = -10000;
         
-        ut_qop = qop;
+        //ut_qop = qop;
         t_extrap->Fill();
       }
     }

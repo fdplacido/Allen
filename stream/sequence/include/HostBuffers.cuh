@@ -33,6 +33,9 @@ struct HostBuffers {
   uint* host_ut_track_hit_number;
   char* host_ut_track_hits;
   float* host_ut_qop;
+  float* host_ut_x;
+  float* host_ut_tx;
+  float* host_ut_z;
   uint*  host_ut_track_velo_indices;
   
   // SciFi 

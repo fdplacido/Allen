@@ -43,6 +43,9 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
     host_buffers.host_atomics_ut,
     host_buffers.host_ut_track_hit_number,
     host_buffers.host_ut_qop,
+    host_buffers.host_ut_x,
+    host_buffers.host_ut_tx,
+    host_buffers.host_ut_z,
     host_buffers.host_ut_track_velo_indices,
     host_buffers.scifi_ids_ut_tracks,
     number_of_events_requested);

@@ -170,6 +170,9 @@ typedef std::tuple<
     dev_ut_track_hits,
     dev_atomics_ut,
     dev_ut_track_hit_number,
+    dev_ut_x,
+    dev_ut_z,
+    dev_ut_tx,
     dev_ut_qop,
     dev_ut_track_velo_indices,
     dev_ut_tracks
@@ -278,6 +281,9 @@ typedef std::tuple<
     dev_ut_track_hits,
     dev_ut_track_hit_number,
     dev_ut_qop,
+    dev_ut_x,
+    dev_ut_z,
+    dev_ut_tx,
     dev_ut_track_velo_indices
   >
 > algorithms_dependencies_t;
@@ -296,6 +302,9 @@ typedef std::tuple<
   dev_ut_track_hit_number,
   dev_ut_track_hits,
   dev_ut_qop,
+  dev_ut_x,
+  dev_ut_z,
+  dev_ut_tx,
   dev_ut_track_velo_indices,
   dev_atomics_scifi,
   dev_scifi_track_hits,

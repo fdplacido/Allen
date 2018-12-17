@@ -59,7 +59,7 @@ struct CheckerInvoker {
           std::vector<uint32_t> scifi_ids;
           if ( !(key == 0xFFFFFF) ) { // track was not matched to an MCP
             for ( const auto mcp : mc_event.scifi_mcps ) {
-              if ( mcp.key == key ) { // found matched MCP
+              if ( mcp.key == key && mcp.isLong) { // found matched long MCP
                 for ( const auto id : mcp.hits ) {
                   const uint32_t detector_id = (id >> 20) & 0xFFF;
                   if ( detector_id == 0xa00 ) { // hit in the SciFi
