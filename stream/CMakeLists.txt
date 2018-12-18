@@ -12,12 +12,12 @@ include_directories(${CMAKE_SOURCE_DIR}/cuda/utils/sorting/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/event_model/velo/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/event_model/common/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/event_model/UT/include)
-include_directories(${CMAKE_SOURCE_DIR}/cuda/event_model/SciFi/include)  
+include_directories(${CMAKE_SOURCE_DIR}/cuda/event_model/SciFi/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/UT/common/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/UT/PrVeloUT/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/UT/UTDecoding/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/UT/sorting/include)
-include_directories(${CMAKE_SOURCE_DIR}/cuda/UT/consolidate/include) 
+include_directories(${CMAKE_SOURCE_DIR}/cuda/UT/consolidate/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/UT/compassUT/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/velo/common/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/velo/calculate_phi_and_sort/include)
@@ -32,6 +32,8 @@ include_directories(${CMAKE_SOURCE_DIR}/cuda/SciFi/common/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/SciFi/PrForward/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/SciFi/consolidate/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/muon/common/include)
+include_directories(${CMAKE_SOURCE_DIR}/cuda/muon/preprocessing/include)
+include_directories(${CMAKE_SOURCE_DIR}/cuda/muon/IsMuon/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/utils/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/PV/patPV/include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/PV/common/include)
@@ -53,8 +55,9 @@ file(GLOB stream_visitors_velo "visitors/velo/src/*cu")
 file(GLOB stream_visitors_pv "visitors/PV/src/*cu")
 file(GLOB stream_visitors_UT "visitors/UT/src/*cu")
 file(GLOB stream_visitors_SciFi "visitors/SciFi/src/*cu")
+file(GLOB stream_visitors_Muon "visitors/muon/src/*cu")
 
-cuda_add_library(Stream STATIC
+add_library(Stream STATIC
   ${stream_gear}
   ${stream_handlers}
   ${stream_memory_manager}
@@ -66,22 +69,30 @@ cuda_add_library(Stream STATIC
   ${stream_visitors_pv}
   ${stream_visitors_UT}
   ${stream_visitors_SciFi}
+  ${stream_visitors_Muon}
 )
 
-target_link_libraries(Stream
+target_link_libraries(Stream PRIVATE
   Common
   Utils
   Velo
   PV
   UT
+  SciFi
   x86Forward
   x86MomentumForward
-  SciFi
-  x86VeloUT)
+  x86VeloUT
+  Muon)
 
-if ( ROOT_FOUND )
+set_property(TARGET Stream PROPERTY
+             CUDA_SEPARABLE_COMPILATION ON)
+
+if (ROOT_FOUND)
   target_compile_definitions(Stream PUBLIC WITH_ROOT)
-  message("-- Found ROOT, setting WITH_ROOT to true")
-  target_link_libraries(Stream
-    ${ROOT_LIBRARIES})
+  target_include_directories(Stream BEFORE PRIVATE
+    ${ROOT_INCLUDE_DIRS}
+  )
+  target_link_libraries(Stream PRIVATE
+    ${ROOT_LIBRARIES}
+  )
 endif()

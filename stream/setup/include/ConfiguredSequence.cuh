@@ -29,6 +29,8 @@
 #include "fitSeeds.cuh"
 #include "RunForwardCPU.h"
 #include "RunMomentumForwardCPU.h"
+#include "MuonFeaturesExtraction.cuh"
+#include "MuonCatboostEvaluator.cuh"
 
 #define SEQUENCE_T(...) typedef std::tuple<__VA_ARGS__> configured_sequence_t;
 
