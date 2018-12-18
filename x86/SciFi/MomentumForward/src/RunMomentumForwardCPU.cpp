@@ -58,9 +58,10 @@ int run_momentum_forward_on_CPU(
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
   float xf, yf, txf, tyf;
-  float res_x, res_x_velo, ut_qop;
+  float res_x_0, res_x_3, ut_qop, dx;
   float UT_x, UT_y, UT_z, UT_tx, UT_ty;
   float velo_x_extrap, velo_tx;
+  int n_hits_in_window_0, n_hits_in_window_3, n_x_combinations;
   
   t_Forward_tracks->Branch("qop", &qop);
   t_Forward_tracks->Branch("state_x", &state_x);
@@ -82,8 +83,13 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("yf", &yf);
   t_extrap->Branch("txf", &txf);
   t_extrap->Branch("tyf", &tyf);
-  t_extrap->Branch("res_x", &res_x);
+  t_extrap->Branch("res_x_0", &res_x_0);
+  t_extrap->Branch("res_x_3", &res_x_3);
+  t_extrap->Branch("dx", &dx);
   t_extrap->Branch("ut_qop", &ut_qop);
+  t_extrap->Branch("n_hits_in_window_0", &n_hits_in_window_0);
+  t_extrap->Branch("n_hits_in_window_3", &n_hits_in_window_3);
+  t_extrap->Branch("n_x_combinations", &n_x_combinations);
   t_ut_tracks->Branch("ut_x", &UT_x);
   t_ut_tracks->Branch("ut_y", &UT_y);
   t_ut_tracks->Branch("ut_z", &UT_z);
@@ -211,7 +217,7 @@ int run_momentum_forward_on_CPU(
         continue;
 
       if ( ret ) {
-      // find x hit(s) in first layer of first SciFi station that 
+      // find x hit(s) in layer 0 that 
       // were truth matched to the veloUT track
       // first layer = zone 0 + zone 1
         int x_zone_offset_begin_0 = scifi_hit_count.zone_offset(0);
@@ -226,45 +232,108 @@ int run_momentum_forward_on_CPU(
           n_hits = n_hits_1;
           x_zone_offset_begin = x_zone_offset_begin_1;
         }
-          
-
+        
         bool match = false;
+        float true_x_0;
         for ( const auto true_id : true_scifi_ids ) {
-          for ( int i_hit = 0; i_hit < n_hits_0; ++i_hit ) { // check in zone 0
-            const int hit_index = x_zone_offset_begin_0 + i_hit;
+          for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) { 
+            const int hit_index = x_zone_offset_begin + i_hit;
             const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
             if ( true_id == lhcbid ) {
-              res_x = xf - scifi_hits.x0[hit_index];
+              res_x_0 = xf - scifi_hits.x0[hit_index];
+              true_x_0 = scifi_hits.x0[hit_index];
               match = true;
               break;
             }
           }
           if ( match ) break;
-          for ( int i_hit = 0; i_hit < n_hits_1; ++i_hit ) { // check in zone 1
-            const int hit_index = x_zone_offset_begin_1 + i_hit;
-            const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
-            if ( true_id == lhcbid ) {
-              res_x = xf - scifi_hits.x0[hit_index];
-              match = true;
-              continue;
-            }
-          } 
-          if ( match ) break;
         }
         if (!match) {
           //debug_cout << "Size of matched ids = " << true_scifi_ids.size() << std::endl;
-          res_x = -10000;
-          res_x_velo = -10000;
+          res_x_0 = -10000;
         }
+
+        // check combinatorics within search window in layer 0
+        //const float max_dx = 5e10 / (qop*qop);
+        const float max_dx = 100;
+        std::vector<int> candidates_x_0;
+        for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) { 
+          const int hit_index = x_zone_offset_begin + i_hit;
+          const float x = scifi_hits.x0[hit_index];
+          if ( fabsf(x-xf) < max_dx )
+            candidates_x_0.push_back(hit_index);
+        }
+        n_hits_in_window_0 = candidates_x_0.size();
+
+        // find x hit(s) in layer 3  that 
+        // were truth matched to the veloUT track
+        // first layer = zone 6 + zone 7
+        int x_zone_offset_begin_6 = scifi_hit_count.zone_offset(6);
+        int n_hits_6 = scifi_hit_count.zone_number_of_hits(6);
+        int x_zone_offset_begin_7 = scifi_hit_count.zone_offset(7);
+        int n_hits_7 = scifi_hit_count.zone_number_of_hits(7);
+        int n_hits_3, x_zone_offset_begin_3;
+        if ( yf < 0 ) {
+          n_hits_3 = n_hits_6;
+          x_zone_offset_begin_3 = x_zone_offset_begin_6;
+        } else {
+          n_hits_3 = n_hits_7;
+          x_zone_offset_begin_3 = x_zone_offset_begin_7;
+        }
+        
+        bool match_3 = false;
+        float true_x_3;
+        for ( const auto true_id : true_scifi_ids ) {
+          for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
+            const int hit_index = x_zone_offset_begin_3 + i_hit;
+            const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+            if ( true_id == lhcbid ) {
+              res_x_3 = xf - scifi_hits.x0[hit_index];
+              true_x_3 = scifi_hits.x0[hit_index];
+              match_3 = true;
+              break;
+            }
+          }
+          if ( match_3 ) break;
+        }
+        if (!match_3) {
+          res_x_3 = -10000;
+        }
+        // check combinatorics within search window in layer 3
+        const float max_dx_3 = 200;
+        std::vector<int> candidates_x_3;
+        for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
+          const int hit_index = x_zone_offset_begin_3 + i_hit;
+          const float x = scifi_hits.x0[hit_index];
+          if ( fabsf(x-xf) < max_dx_3 )
+            candidates_x_3.push_back(hit_index);
+        }
+        n_hits_in_window_3 = candidates_x_3.size();
+        dx = true_x_3-true_x_0;
+
+        // check combinations of x hits from layer 0 and 3
+        n_x_combinations = 0;
+        for ( const auto index_0 : candidates_x_0 ) {
+          const float x_0 =  scifi_hits.x0[index_0];
+          for ( const auto index_3 : candidates_x_3 ) {
+            const float x_3 =  scifi_hits.x0[index_3];
+            if ( fabsf(x_0 - x_3 ) < 200 ) {
+              n_x_combinations++;
+            }
+          }
+        }
+
         t_extrap->Fill();
-      }
-    }
-      
-      *n_forward_tracks = 0;
-      
+        
+      } // extrapolation worked
+    } // loop over veloUT tracks
+    
+    
+    *n_forward_tracks = 0;
+    
 #ifdef WITH_ROOT
-      // store qop in tree
-      for ( int i_track = 0; i_track < *n_forward_tracks; ++i_track ) {
+    // store qop in tree
+    for ( int i_track = 0; i_track < *n_forward_tracks; ++i_track ) {
       qop = scifi_tracks_event[i_track].qop;
       state_x  = scifi_tracks_event[i_track].state.x;
       state_y  = scifi_tracks_event[i_track].state.y;
