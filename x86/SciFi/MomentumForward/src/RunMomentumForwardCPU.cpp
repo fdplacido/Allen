@@ -57,7 +57,7 @@ int run_momentum_forward_on_CPU(
   float qop;
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
-  double xf, yf, txf, tyf;
+  float xf, yf, txf, tyf;
   float res_x, res_x_velo, ut_qop;
   float UT_x, UT_y, UT_z, UT_tx, UT_ty;
   float velo_x_extrap, velo_tx;
@@ -158,7 +158,7 @@ int run_momentum_forward_on_CPU(
     params.Txmax = params.Tymax = .25; params.Xmax = params.ZINI*params.Txmax; params.Ymax = params.ZINI*params.Tymax;
     
     // extrapolate veloUT tracks
-    double tx,ty,qop;
+    float tx,ty,qop;
 
     for(int i_veloUT_track = 0; i_veloUT_track < n_veloUT_tracks_event; ++i_veloUT_track ) {
       // veloUT track variables
@@ -198,7 +198,7 @@ int run_momentum_forward_on_CPU(
 #endif
 
       // propagation extrap() de ZINI a ZFIN
-      double eloss = 2./3e5;
+      float eloss = 2.f/3e5;
       
       int ret = extrap(
         params.ZINI, params.ZFIN,
