@@ -207,13 +207,6 @@ int run_momentum_forward_on_CPU(
         qop,params.BEND, params.QuadraticInterpolation,
         xf, yf, txf, tyf, params);
 
-      // int ret= extrap(
-      //   params.ZINI, params.ZFIN,
-      //   UT_state.x, UT_state.y,
-      //   UT_state.tx, UT_state.ty,
-      //   qop, params.BEND, params.QuadraticInterpolation, 
-      //   xf, yf, txf, tyf, params);
-
       if ( true_scifi_ids.size() == 0 )
         continue;
 
