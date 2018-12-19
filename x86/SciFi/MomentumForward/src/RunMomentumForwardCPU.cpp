@@ -58,7 +58,7 @@ int run_momentum_forward_on_CPU(
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
   float xf, yf, txf, tyf, der_xf_qop;
-  float res_x_0, res_x_3, ut_qop, dx;
+  float res_x_0, res_x_3, ut_qop, dx, x_extrap;
   float UT_x, UT_y, UT_z, UT_tx, UT_ty;
   float velo_x_extrap, velo_tx;
   int n_hits_in_window_0, n_hits_in_window_3, n_x_combinations;
@@ -86,6 +86,7 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("der_xf_qop", &der_xf_qop);
   t_extrap->Branch("res_x_0", &res_x_0);
   t_extrap->Branch("res_x_3", &res_x_3);
+  t_extrap->Branch("x_extrap", &x_extrap);
   t_extrap->Branch("dx", &dx);
   t_extrap->Branch("ut_qop", &ut_qop);
   t_extrap->Branch("n_hits_in_window_0", &n_hits_in_window_0);
@@ -159,11 +160,10 @@ int run_momentum_forward_on_CPU(
 
     /* etrapolation to first SciFi station using parametrization*/
     // read coefficients
-    char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.txt";
+    char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.tab";
     debug_cout << "Reading coefs: " << name_coef << std::endl;
     parameters params;
     ReadCoef(name_coef, params);
-    //params.Txmax = params.Tymax = .25; 
     params.Xmax = params.ZINI*params.Txmax; params.Ymax = params.ZINI*params.Tymax;
     
     // extrapolate veloUT tracks
@@ -215,6 +215,8 @@ int run_momentum_forward_on_CPU(
         UT_state_from_velo.tx, UT_state_from_velo.ty,
         qop, params,
         xf, yf, txf, tyf, der_xf_qop);
+      
+      
 
       if ( true_scifi_ids.size() == 0 )
         continue;
@@ -245,6 +247,7 @@ int run_momentum_forward_on_CPU(
             if ( true_id == lhcbid ) {
               res_x_0 = xf - scifi_hits.x0[hit_index];
               true_x_0 = scifi_hits.x0[hit_index];
+              x_extrap = xf * der_xf_qop * (xf - true_x_0);
               match = true;
               break;
             }
@@ -255,7 +258,6 @@ int run_momentum_forward_on_CPU(
           //debug_cout << "Size of matched ids = " << true_scifi_ids.size() << std::endl;
           res_x_0 = -10000;
         }
-
         // check combinatorics within search window in layer 0
         //const float max_dx = 5e10 / (qop*qop);
         const float max_dx = 100;
