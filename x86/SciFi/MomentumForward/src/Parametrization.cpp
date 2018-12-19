@@ -66,22 +66,27 @@ void ReadCoef(char *name, parameters& params)
   FILE *coef;
   coef = fopen(name,"r");
   
-  fscanf(coef,"%lf %lf %lf %lf %lf %lf %lf",&params.ZINI,&params.ZFIN,&params.PMIN,&params.BEND,&params.Txmax,&params.Tymax,&params.Dtxy);
+  //fscanf(coef,"%lf %lf %lf %lf %lf %lf %lf",&params.ZINI,&params.ZFIN,&params.PMIN,&params.BEND,&params.Txmax,&params.Tymax,&params.Dtxy);
+  fscanf(coef,"%lf %lf %lf %lf %lf %lf %lf",&params.ZINI,&params.ZFIN,&params.PMIN,&params.BENDX,&params.BENDX_X2,&params.BENDX_Y2,&params.BENDY_XY);
+  fscanf(coef, "%lf %lf %lf %lf", &params.Txmax,&params.Tymax,&params.XFmax,&params.Dtxy);
   fscanf(coef,"%d %d %d %d %d %d %d %d",&params.Nbinx,&params.Nbiny,&params.XGridOption,&params.YGridOption,&params.DEGX1,&params.DEGX2,&params.DEGY1,&params.DEGY2);
-  printf("ZINI,ZFIN %5.0f %5.0f\n",params.ZINI,params.ZFIN);
-  printf("PMIN %5.0f\n",params.PMIN);
+
+  printf("ZINI,ZFIN %5.2f %5.2f\n",params.ZINI,params.ZFIN);
+  printf("PMIN %5.2f\n",params.PMIN);
+  printf("BENDX %5.2f BENDX_X2 %5.2f  BENDX_Y2 %5.2f BENDY_XY %5.2f\n",params.BENDX, params.BENDX_X2, params.BENDX_Y2, params.BENDY_XY);
+  printf("Txmax %5.2f  Tymax %5.2f XFmax %f Dtxy %f \n",params.Txmax, params.Tymax, params.XFmax, params.Dtxy);
   printf("Nbinx,Nbiny %d %d\n",params.Nbinx,params.Nbiny);
   printf("GridOptions %d %d\n",params.XGridOption,params.YGridOption);
   printf("DEGX1,DEGX2 %d %d   DEGY1,DEGY2 %d %d\n",params.DEGX1,params.DEGX2,params.DEGY1,params.DEGY2);
   printf("Dtxy %f\n",params.Dtxy);
-  printf("bending at ZINI  %5.1f rad.MeV\n",params.BEND);
+  printf("bending at ZINI  %5.1f rad.MeV\n",params.BENDX);
 
   for(int ix=0; ix<params.Nbinx; ix++) for(int iy=0; iy<params.Nbiny; iy++) params.C[ix][iy].Read(coef,params.DEGX1,params.DEGX2,params.DEGY1,params.DEGY2);
 }
 
-int extrap(const double zi,const double zf,const float xi,const float yi,const float txi,const float tyi,const float qop,const double bend,const int quad_interp,float& xf,float& yf,float& txf,float& tyf, const parameters params)
+int extrap(const double zi,const double zf,const float xi,const float yi,const float txi,const float tyi,const float qop, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop)
 // extrapolation from plane zi to plane zf, from initial state (xi,yi,txi,tyi,qop) to final state (xf,yf,txf,tyf)
-// the bending from origin to zi is approximated by adding bend*qop to xi/zi.
+// the bending from origin to zi is approximated by adding (bend+bendx_x2*u^2+bendx_y2*v^2)*qop to u=xi/zi and bendy_xy*u*v*qop to v=yi/zi
 // quad_inperp (logical): if true, the quadratic interpolation is used (better, with a little bit more computations)
 // XGridO[tion and YGridOption describe the choice of xy grid. By default, it is 1 (equally spaced values)   
 {
@@ -103,12 +108,15 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
   dx = params.Nbinx*(xx+1)/2; ix = dx; dx -= ix;
   dy = params.Nbiny*(yy+1)/2; iy = dy; dy -= iy;
 
-  ux = (txi-xi/zi-bend*qop)/params.Dtxy; uy = (tyi-yi/zi)/params.Dtxy;
+  //ux = (txi-xi/zi-bend*qop)/params.Dtxy; uy = (tyi-yi/zi)/params.Dtxy;
+  double bendx = params.BENDX+params.BENDX_X2*sqr(xi/zi)+params.BENDX_Y2*sqr(yi/zi);           
+  double bendy = params.BENDY_XY*(xi/zi)*(yi/zi);                                
+  ux = (txi-xi/zi-bendx*qop)/params.Dtxy; uy = (tyi-yi/zi-bendy*qop)/params.Dtxy; 
   if(fabs(ux)>2||fabs(uy)>2) return 0;
 
   Coef c;
 
-  if(quad_interp) {
+  if(params.QuadraticInterpolation) {
     float gx,gy;
     gx = dx-.5; gy = dy-.5;
     //if(gx*gx+gy*gy>.01) return 0;
@@ -142,9 +150,12 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
   txf = txi;
   tyf = tyi;
   // corrections to straight line
+  der_xf_qop = 0; 
   float fq = qop*params.PMIN;
   float ff = 1.f;
   for(int deg=0; deg<c.Degx2; deg++) {
+    double coef = c.x00[deg]; if(deg<c.Degx1) coef += c.x10[deg]*ux+c.x01[deg]*uy;
+    der_xf_qop += (deg+1)*coef*ff; 
     ff *= fq;
     xf  += c.x00[deg]*ff;
     txf += c.tx00[deg]*ff;
@@ -152,6 +163,7 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
     xf  += ( c.x10[deg]*ux +  c.x01[deg]*uy)*ff;
     txf += (c.tx10[deg]*ux + c.tx01[deg]*uy)*ff;
   }
+  der_xf_qop *= params.PMIN;  
   ff = 1.f;
   for(int deg=0; deg<c.Degy2; deg++) {
     ff *= fq;
@@ -163,51 +175,3 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
   }
   return 1;
 }
-
-/**************************************************************************************/
-
-/************************************************************************************************************************/
-
-// #include "Field_RK_eloss.cc"
-
-// int main(int argc, char *argv[])
-// {
-//   FILE *req, *inp, *res;
-//   char name_coef[200], name_part[200], name_res[200];
-
-//   req = fopen("use_param.req","r");
-//   fscanf(req,"%*s %s %s %s",name_coef,name_part,name_res);
-//   printf("coef_file %s   part_file %s\n",name_coef,name_part);
-//   fscanf(req,"%*s %d",&QuadraticInterpolation);
-//   printf("QuadraticInterpolation %d\n",QuadraticInterpolation);
-
-//   ReadCoef(name_coef);
-//   inp = fopen(name_part,"r");
-//   res = fopen(name_res,"w");
-//   ReadField();
-
-//   // reading the particle file 
-//   Txmax = Tymax = .25; Xmax = ZINI*Txmax; Ymax = ZINI*Tymax;
-//   int code,signe;
-//   float px,py,pz,vx,vy,vz,tx,ty,qop,qopi,qopf;
-
-//   for(int itry=0; itry<100000; itry++) {
-//     fscanf(inp,"%d  %lf %lf %lf  %lf %lf %lf  %d",&code,&px,&py,&pz,&vx,&vy,&vz,&signe);
-//     if(feof(inp)) break;
-//     qop = signe/sqrt(px*px+py*py+pz*pz);
-//     if(vz>ZINI||1/fabs(qop)<PMIN) continue;
-//     tx = px/pz; ty = py/pz;
-//     if(fabs(tx)>Txmax||fabs(ty)>Tymax) continue;
-
-//     float xi,yi,txi,tyi,xr,yr,txr,tyr,xf,yf,txf,tyf;
-//     // propagation par RK4 de vz a ZINI
-//     nstep_RK4(20,vz,(ZINI-vz)/20,vx,vy,tx,ty,qop,0,xi,yi,txi,tyi,qopi);
-//     // propagation par RK4 et extrap() de ZINI a ZFIN
-//     float eloss = 2./3e5;
-//     nstep_RK4(NSTEP,ZINI,(ZFIN-ZINI)/NSTEP,xi,yi,txi,tyi,qopi,eloss,xr,yr,txr,tyr,qopf);
-//     if(extrap(ZINI,ZFIN,xi,yi,txi,tyi,qop,BEND,QuadraticInterpolation,xf,yf,txf,tyf))
-//       fprintf(res,"%7.4f %7.4f %7.4f   %7.4f %7.4f %7.4f %7.4f\n",1e3*qop,tx,ty,xf-xr,yf-yr,1e3*(txf-txr),1e3*(tyf-tyr));
-//   }
-
-//   return 1;
-// }

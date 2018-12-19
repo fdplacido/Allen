@@ -57,7 +57,7 @@ int run_momentum_forward_on_CPU(
   float qop;
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
-  float xf, yf, txf, tyf;
+  float xf, yf, txf, tyf, der_xf_qop;
   float res_x_0, res_x_3, ut_qop, dx;
   float UT_x, UT_y, UT_z, UT_tx, UT_ty;
   float velo_x_extrap, velo_tx;
@@ -83,6 +83,7 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("yf", &yf);
   t_extrap->Branch("txf", &txf);
   t_extrap->Branch("tyf", &tyf);
+  t_extrap->Branch("der_xf_qop", &der_xf_qop);
   t_extrap->Branch("res_x_0", &res_x_0);
   t_extrap->Branch("res_x_3", &res_x_3);
   t_extrap->Branch("dx", &dx);
@@ -158,10 +159,12 @@ int run_momentum_forward_on_CPU(
 
     /* etrapolation to first SciFi station using parametrization*/
     // read coefficients
-    char name_coef[200] = "/home/dvombruc/Allen/x86/SciFi/MomentumForward/include/coefs.txt";
+    char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.txt";
+    debug_cout << "Reading coefs: " << name_coef << std::endl;
     parameters params;
     ReadCoef(name_coef, params);
-    params.Txmax = params.Tymax = .25; params.Xmax = params.ZINI*params.Txmax; params.Ymax = params.ZINI*params.Tymax;
+    //params.Txmax = params.Tymax = .25; 
+    params.Xmax = params.ZINI*params.Txmax; params.Ymax = params.ZINI*params.Tymax;
     
     // extrapolate veloUT tracks
     float tx,ty,qop;
@@ -210,8 +213,8 @@ int run_momentum_forward_on_CPU(
         params.ZINI, params.ZFIN,
         UT_state_from_velo.x, UT_state_from_velo.y,
         UT_state_from_velo.tx, UT_state_from_velo.ty,
-        qop,params.BEND, params.QuadraticInterpolation,
-        xf, yf, txf, tyf, params);
+        qop, params,
+        xf, yf, txf, tyf, der_xf_qop);
 
       if ( true_scifi_ids.size() == 0 )
         continue;

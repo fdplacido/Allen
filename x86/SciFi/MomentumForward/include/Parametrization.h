@@ -36,7 +36,7 @@ Coef operator-(Coef a, Coef b);
 Coef operator*(Coef a, double p);
 
 struct parameters{ 
-  double ZINI,ZFIN,PMIN,BEND,Txmax,Tymax,Xmax,Ymax,Dtxy,step;
+  double ZINI,ZFIN,PMIN,BENDX, BENDX_X2, BENDX_Y2, BENDY_XY,Txmax,Tymax,XFmax, Xmax,Ymax,Dtxy,step;
   int Nbinx,Nbiny,XGridOption,YGridOption,QuadraticInterpolation,DEGX1,DEGX2,DEGY1,DEGY2;
   Coef C[NBINXMAX][NBINYMAX];
 };
@@ -49,6 +49,6 @@ struct parameters{
 void ReadCoef(char *name, parameters& params);
 
 /*-------------------------------------------------------------------------------------------------------------------------*/
-int extrap(const double zi,const double zf,const float xi,const float yi,const float txi,const float tyi,const float qop,const double bend,const int quad_interp,float& xf,float& yf,float& txf,float& tyf, const parameters params);
+int extrap(const double zi,const double zf,const float xi,const float yi,const float txi,const float tyi,const float qop, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop);
 
 
