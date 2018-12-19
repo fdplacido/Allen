@@ -57,7 +57,7 @@ int run_momentum_forward_on_CPU(
   float qop;
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
-  float xf, yf, txf, tyf, der_xf_qop;
+  float xf, yf, txf, tyf, der_xf_qop, qop_update;
   float res_x_0, res_x_3, ut_qop, dx, x_extrap;
   float UT_x, UT_y, UT_z, UT_tx, UT_ty;
   float velo_x_extrap, velo_tx;
@@ -89,6 +89,7 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("x_extrap", &x_extrap);
   t_extrap->Branch("dx", &dx);
   t_extrap->Branch("ut_qop", &ut_qop);
+  t_extrap->Branch("qop_update", &qop_update);
   t_extrap->Branch("n_hits_in_window_0", &n_hits_in_window_0);
   t_extrap->Branch("n_hits_in_window_3", &n_hits_in_window_3);
   t_extrap->Branch("n_x_combinations", &n_x_combinations);
@@ -216,8 +217,6 @@ int run_momentum_forward_on_CPU(
         qop, params,
         xf, yf, txf, tyf, der_xf_qop);
       
-      
-
       if ( true_scifi_ids.size() == 0 )
         continue;
 
@@ -249,6 +248,13 @@ int run_momentum_forward_on_CPU(
               true_x_0 = scifi_hits.x0[hit_index];
               x_extrap = xf * der_xf_qop * (xf - true_x_0);
               match = true;
+              //test(params);
+              // int ret_qop = update_qop_estimate(
+              //   UT_state_from_velo, qop,
+              //   true_x_0, copy_params, 
+              //   xf, yf, txf, tyf, der_xf_qop, qop_update);
+              // printf("after update_qop_estimate \n");
+              // if ( !ret_qop ) break;
               break;
             }
           }

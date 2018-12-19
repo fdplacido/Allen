@@ -175,3 +175,26 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
   }
   return 1;
 }
+
+void test(parameters params) {}
+
+int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update)
+{
+  float r_prev = qop;
+  for ( int i = 0; i < MAXITER; ++i ) {
+    printf("At iteration %u \n", i);
+    int ret = extrap(
+      params.ZINI, params.ZFIN,
+      UT_state.x, UT_state.y,
+      UT_state.tx, UT_state.ty,
+      r_prev, params,
+      xf, yf, txf, tyf, der_xf_qop);
+    if ( !ret ) return 1;
+    qop_update = r_prev + (xhit - xf) / der_xf_qop;
+    printf("r - r_prev = %f \n", std::abs(qop_update-r_prev) );
+    if ( std::abs(qop_update-r_prev) < RCONVERGENCE )
+      return 0;
+    r_prev = qop_update;
+  }
+  return 1;
+}

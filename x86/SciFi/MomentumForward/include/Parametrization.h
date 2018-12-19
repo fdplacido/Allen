@@ -5,6 +5,8 @@
 #include <math.h>
 #include <vector>
 
+#include "MiniState.cuh"
+
 /*
   Author: Pierre Billoir
   Date: 01/2018
@@ -18,7 +20,8 @@ static constexpr int NBINXMAX = 100;
 static constexpr int  NBINYMAX = 100;
 static constexpr int NSTEP = 50;
 static constexpr int TWODIPOLES = 0;
-
+static constexpr int MAXITER = 5;
+static constexpr float RCONVERGENCE = 0.1;
 
 class Coef 
 {
@@ -51,4 +54,6 @@ void ReadCoef(char *name, parameters& params);
 /*-------------------------------------------------------------------------------------------------------------------------*/
 int extrap(const double zi,const double zf,const float xi,const float yi,const float txi,const float tyi,const float qop, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop);
 
+int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update);
 
+void test(parameters params);
