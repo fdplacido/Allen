@@ -9,8 +9,8 @@ void SequenceVisitor::set_arguments_size<cpu_scifi_pr_forward_t>(
   const HostBuffers& host_buffers,
   argument_manager_t& arguments)
 {
-  arguments.set_size<dev_scifi_tracks>(runtime_options.number_of_events * SciFi::Constants::max_tracks);
-  arguments.set_size<dev_atomics_scifi>(runtime_options.number_of_events * SciFi::num_atomics);
+  arguments.set_size<dev_scifi_tracks>(host_buffers.host_number_of_selected_events[0] * SciFi::Constants::max_tracks);
+  arguments.set_size<dev_atomics_scifi>(host_buffers.host_number_of_selected_events[0] * SciFi::num_atomics);
 }
 
 template<>
@@ -29,8 +29,10 @@ void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
 
   // Run Forward on x86 architecture
   host_buffers.host_scifi_hits.reserve(host_buffers.scifi_hits_uints());
-  host_buffers.host_scifi_hit_count.reserve(2 * runtime_options.number_of_events * SciFi::Constants::n_mats + 1);
-  host_buffers.scifi_tracks_events.reserve(runtime_options.number_of_events * SciFi::Constants::max_tracks);
+  // ATTENTION: when using SciFi raw bank version 5, 
+  // need: 2*host_buffers.host_number_of_selected_events[0]*...
+  host_buffers.host_scifi_hit_count.reserve(host_buffers.host_number_of_selected_events[0] * SciFi::Constants::n_mats + 1);
+  host_buffers.scifi_tracks_events.reserve(host_buffers.host_number_of_selected_events[0] * SciFi::Constants::max_tracks);
 
   cudaCheck(cudaMemcpyAsync(
     host_buffers.host_scifi_hits.data(),
@@ -61,8 +63,11 @@ void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
     host_buffers.host_ut_track_hit_number,
     host_buffers.host_ut_qop,
     host_buffers.host_ut_track_velo_indices,
-    runtime_options.number_of_events);
+    host_buffers.host_number_of_selected_events[0]);
  
+  for ( int i = 0; i < host_buffers.host_number_of_selected_events[0]; ++i ) 
+    debug_cout << "Visitor: found " << host_buffers.host_atomics_scifi[i] << " tracks in event " << i << std::endl;
+
   // copy SciFi track to device for consolidation
   cudaCheck(cudaMemcpyAsync(
     arguments.offset<dev_atomics_scifi>(), 
@@ -80,5 +85,4 @@ void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
   
   cudaEventRecord(cuda_generic_event, cuda_stream);
   cudaEventSynchronize(cuda_generic_event);
-  
 }
