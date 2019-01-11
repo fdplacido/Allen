@@ -59,6 +59,12 @@ void Constants::initialize_constants() {
 
   host_inv_clus_res = {1/0.05, 1/0.08, 1/0.11, 1/0.14, 1/0.17, 1/0.20, 1/0.23, 1/0.26, 1/0.29};
   cudaCheck(cudaMemcpy(dev_inv_clus_res, &host_inv_clus_res, host_inv_clus_res.size() * sizeof(float), cudaMemcpyHostToDevice));
+
+  // extrapolation parametrization
+  char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.tab";
+  debug_cout << "Reading coefs: " << name_coef << std::endl;
+  const SciFi::Parameters params = SciFi::Parameters(name_coef);
+  host_scifi_params = &params;
 }
 
 void Constants::initialize_ut_decoding_constants(

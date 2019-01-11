@@ -30,6 +30,7 @@ int run_momentum_forward_on_CPU(
   const uint* host_scifi_hit_count,
   const char* host_scifi_geometry,
   const std::array<float, 9>& host_inv_clus_res,
+  const SciFi::Parameters* scifi_params,
   const uint* host_velo_tracks_atomics,
   const uint* host_velo_track_hit_number,
   const char* host_velo_states,
@@ -103,6 +104,10 @@ int run_momentum_forward_on_CPU(
   t_ut_tracks->Branch("ut_qop", &ut_qop);
 #endif
 
+  char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.tab";
+  debug_cout << "Reading coefs: " << name_coef << std::endl;
+  const SciFi::Parameters params = SciFi::Parameters(name_coef);
+
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
 
     // Velo consolidated types
@@ -159,12 +164,6 @@ int run_momentum_forward_on_CPU(
 #endif
 
     /* etrapolation to first SciFi station using parametrization*/
-    // read coefficients
-    char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.tab";
-    debug_cout << "Reading coefs: " << name_coef << std::endl;
-    parameters params;
-    ReadCoef(name_coef, params);
-    params.Xmax = params.ZINI*params.Txmax; params.Ymax = params.ZINI*params.Tymax;
     
     // extrapolate veloUT tracks
     float tx,ty,qop;
@@ -210,10 +209,10 @@ int run_momentum_forward_on_CPU(
       float eloss = 2.f/3e5;
       
       int ret = extrap(
-        params.ZINI, params.ZFIN,
+                       //params.ZINI, params.ZFIN,
         UT_state_from_velo.x, UT_state_from_velo.y,
         UT_state_from_velo.tx, UT_state_from_velo.ty,
-        qop, params,
+        qop, &params,
         xf, yf, txf, tyf, der_xf_qop);
       
       if ( true_scifi_ids.size() == 0 )
@@ -222,7 +221,7 @@ int run_momentum_forward_on_CPU(
       if ( ret ) {
       // find x hit(s) in layer 0 that 
       // were truth matched to the veloUT track
-      // first layer = zone 0 + zone 1
+      // first layer = zone 0 (y < 0) + zone 1 (y > 0)
         int x_zone_offset_begin_0 = scifi_hit_count.zone_offset(0);
         int n_hits_0 = scifi_hit_count.zone_number_of_hits(0);
         int x_zone_offset_begin_1 = scifi_hit_count.zone_offset(1);
@@ -235,7 +234,7 @@ int run_momentum_forward_on_CPU(
           n_hits = n_hits_1;
           x_zone_offset_begin = x_zone_offset_begin_1;
         }
-        
+      
         bool match = false;
         float true_x_0;
         for ( const auto true_id : true_scifi_ids ) {
@@ -245,15 +244,16 @@ int run_momentum_forward_on_CPU(
             if ( true_id == lhcbid ) {
               res_x_0 = xf - scifi_hits.x0[hit_index];
               true_x_0 = scifi_hits.x0[hit_index];
-              x_extrap = xf * der_xf_qop * (xf - true_x_0);
+              x_extrap = xf + der_xf_qop * (xf - true_x_0);
               match = true;
-              //test(params);
-              // int ret_qop = update_qop_estimate(
-              //   UT_state_from_velo, qop,
-              //   true_x_0, copy_params, 
-              //   xf, yf, txf, tyf, der_xf_qop, qop_update);
-              // printf("after update_qop_estimate \n");
-              // if ( !ret_qop ) break;
+              
+              //test(&params);
+              int ret_qop = update_qop_estimate(
+                UT_state_from_velo, qop,
+                true_x_0, &params, 
+                xf, yf, txf, tyf, der_xf_qop, qop_update);
+              printf("after update_qop_estimate \n");
+              if ( !ret_qop ) break;
               break;
             }
           }
@@ -264,7 +264,6 @@ int run_momentum_forward_on_CPU(
           res_x_0 = -10000;
         }
         // check combinatorics within search window in layer 0
-        //const float max_dx = 5e10 / (qop*qop);
         const float max_dx = 100;
         std::vector<int> candidates_x_0;
         for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) { 
@@ -278,60 +277,60 @@ int run_momentum_forward_on_CPU(
         // find x hit(s) in layer 3  that 
         // were truth matched to the veloUT track
         // first layer = zone 6 + zone 7
-        int x_zone_offset_begin_6 = scifi_hit_count.zone_offset(6);
-        int n_hits_6 = scifi_hit_count.zone_number_of_hits(6);
-        int x_zone_offset_begin_7 = scifi_hit_count.zone_offset(7);
-        int n_hits_7 = scifi_hit_count.zone_number_of_hits(7);
-        int n_hits_3, x_zone_offset_begin_3;
-        if ( yf < 0 ) {
-          n_hits_3 = n_hits_6;
-          x_zone_offset_begin_3 = x_zone_offset_begin_6;
-        } else {
-          n_hits_3 = n_hits_7;
-          x_zone_offset_begin_3 = x_zone_offset_begin_7;
-        }
+        // int x_zone_offset_begin_6 = scifi_hit_count.zone_offset(6);
+        // int n_hits_6 = scifi_hit_count.zone_number_of_hits(6);
+        // int x_zone_offset_begin_7 = scifi_hit_count.zone_offset(7);
+        // int n_hits_7 = scifi_hit_count.zone_number_of_hits(7);
+        // int n_hits_3, x_zone_offset_begin_3;
+        // if ( yf < 0 ) {
+        //   n_hits_3 = n_hits_6;
+        //   x_zone_offset_begin_3 = x_zone_offset_begin_6;
+        // } else {
+        //   n_hits_3 = n_hits_7;
+        //   x_zone_offset_begin_3 = x_zone_offset_begin_7;
+        // }
         
-        bool match_3 = false;
-        float true_x_3;
-        for ( const auto true_id : true_scifi_ids ) {
-          for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
-            const int hit_index = x_zone_offset_begin_3 + i_hit;
-            const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
-            if ( true_id == lhcbid ) {
-              res_x_3 = xf - scifi_hits.x0[hit_index];
-              true_x_3 = scifi_hits.x0[hit_index];
-              match_3 = true;
-              break;
-            }
-          }
-          if ( match_3 ) break;
-        }
-        if (!match_3) {
-          res_x_3 = -10000;
-        }
-        // check combinatorics within search window in layer 3
-        const float max_dx_3 = 200;
-        std::vector<int> candidates_x_3;
-        for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
-          const int hit_index = x_zone_offset_begin_3 + i_hit;
-          const float x = scifi_hits.x0[hit_index];
-          if ( fabsf(x-xf) < max_dx_3 )
-            candidates_x_3.push_back(hit_index);
-        }
-        n_hits_in_window_3 = candidates_x_3.size();
-        dx = true_x_3-true_x_0;
+        //bool match_3 = false;
+         // float true_x_3;
+        // for ( const auto true_id : true_scifi_ids ) {
+        //   for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
+        //     const int hit_index = x_zone_offset_begin_3 + i_hit;
+        //     const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+        //     if ( true_id == lhcbid ) {
+        //       res_x_3 = xf - scifi_hits.x0[hit_index];
+        //       true_x_3 = scifi_hits.x0[hit_index];
+        //       match_3 = true;
+        //       break;
+        //     }
+        //   }
+        //   if ( match_3 ) break;
+        // }
+        // if (!match_3) {
+        //   res_x_3 = -10000;
+        // }
+        // // check combinatorics within search window in layer 3
+        // const float max_dx_3 = 200;
+        // std::vector<int> candidates_x_3;
+        // for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
+        //   const int hit_index = x_zone_offset_begin_3 + i_hit;
+        //   const float x = scifi_hits.x0[hit_index];
+        //   if ( fabsf(x-xf) < max_dx_3 )
+        //     candidates_x_3.push_back(hit_index);
+        // }
+        // n_hits_in_window_3 = candidates_x_3.size();
+        // dx = true_x_3-true_x_0;
 
-        // check combinations of x hits from layer 0 and 3
-        n_x_combinations = 0;
-        for ( const auto index_0 : candidates_x_0 ) {
-          const float x_0 =  scifi_hits.x0[index_0];
-          for ( const auto index_3 : candidates_x_3 ) {
-            const float x_3 =  scifi_hits.x0[index_3];
-            if ( fabsf(x_0 - x_3 ) < 200 ) {
-              n_x_combinations++;
-            }
-          }
-        }
+        // // check combinations of x hits from layer 0 and 3
+        // n_x_combinations = 0;
+        // for ( const auto index_0 : candidates_x_0 ) {
+        //   const float x_0 =  scifi_hits.x0[index_0];
+        //   for ( const auto index_3 : candidates_x_3 ) {
+        //     const float x_3 =  scifi_hits.x0[index_3];
+        //     if ( fabsf(x_0 - x_3 ) < 200 ) {
+        //       n_x_combinations++;
+        //     }
+        //   }
+        // }
 
         t_extrap->Fill();
         

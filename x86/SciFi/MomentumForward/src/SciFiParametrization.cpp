@@ -1,9 +1,13 @@
-#include "Parametrization.h"
+#include "SciFiParametrization.h"
+#include "Logger.h"
+
 #include <fstream>     // std::cout, std::ios
 
 /*
   Author: Pierre Billoir
   Date: 01/2018
+
+  01/2018 converted to C++, adopted to Allen use case by Dorothea vom Bruch
   
  */
 
@@ -61,75 +65,88 @@ Coef operator*(Coef a, double p)
   return c;
 }
 
-void ReadCoef(char *name, parameters& params)
-{
+SciFi::Parameters::Parameters(const char *name) {
   FILE *coef;
   coef = fopen(name,"r");
   
-  //fscanf(coef,"%lf %lf %lf %lf %lf %lf %lf",&params.ZINI,&params.ZFIN,&params.PMIN,&params.BEND,&params.Txmax,&params.Tymax,&params.Dtxy);
-  fscanf(coef,"%lf %lf %lf %lf %lf %lf %lf",&params.ZINI,&params.ZFIN,&params.PMIN,&params.BENDX,&params.BENDX_X2,&params.BENDX_Y2,&params.BENDY_XY);
-  fscanf(coef, "%lf %lf %lf %lf", &params.Txmax,&params.Tymax,&params.XFmax,&params.Dtxy);
-  fscanf(coef,"%d %d %d %d %d %d %d %d",&params.Nbinx,&params.Nbiny,&params.XGridOption,&params.YGridOption,&params.DEGX1,&params.DEGX2,&params.DEGY1,&params.DEGY2);
+  fscanf(coef,"%lf %lf %lf %lf %lf %lf %lf",&ZINI,&ZFIN,&PMIN,&BENDX,&BENDX_X2,&BENDX_Y2,&BENDY_XY);
+  fscanf(coef, "%lf %lf %lf %lf", &Txmax,&Tymax,&XFmax,&Dtxy);
+  fscanf(coef,"%d %d %d %d %d %d %d %d",&Nbinx,&Nbiny,&XGridOption,&YGridOption,&DEGX1,&DEGX2,&DEGY1,&DEGY2);
 
-  printf("ZINI,ZFIN %5.2f %5.2f\n",params.ZINI,params.ZFIN);
-  printf("PMIN %5.2f\n",params.PMIN);
-  printf("BENDX %5.2f BENDX_X2 %5.2f  BENDX_Y2 %5.2f BENDY_XY %5.2f\n",params.BENDX, params.BENDX_X2, params.BENDX_Y2, params.BENDY_XY);
-  printf("Txmax %5.2f  Tymax %5.2f XFmax %f Dtxy %f \n",params.Txmax, params.Tymax, params.XFmax, params.Dtxy);
-  printf("Nbinx,Nbiny %d %d\n",params.Nbinx,params.Nbiny);
-  printf("GridOptions %d %d\n",params.XGridOption,params.YGridOption);
-  printf("DEGX1,DEGX2 %d %d   DEGY1,DEGY2 %d %d\n",params.DEGX1,params.DEGX2,params.DEGY1,params.DEGY2);
-  printf("Dtxy %f\n",params.Dtxy);
-  printf("bending at ZINI  %5.1f rad.MeV\n",params.BENDX);
+  // printf("ZINI,ZFIN %5.2f %5.2f\n",ZINI,ZFIN);
+  // printf("PMIN %5.2f\n",PMIN);
+  // printf("BENDX %5.2f BENDX_X2 %5.2f  BENDX_Y2 %5.2f BENDY_XY %5.2f\n",BENDX, BENDX_X2, BENDX_Y2, BENDY_XY);
+  // printf("Txmax %5.2f  Tymax %5.2f XFmax %f Dtxy %f \n",Txmax, Tymax, XFmax, Dtxy);
+  // printf("Nbinx,Nbiny %d %d\n",Nbinx,Nbiny);
+  // printf("GridOptions %d %d\n",XGridOption,YGridOption);
+  // printf("DEGX1,DEGX2 %d %d   DEGY1,DEGY2 %d %d\n",DEGX1,DEGX2,DEGY1,DEGY2);
+  // printf("Dtxy %f\n",Dtxy);
+  // printf("bending at ZINI  %5.1f rad.MeV\n",BENDX);
 
-  for(int ix=0; ix<params.Nbinx; ix++) for(int iy=0; iy<params.Nbiny; iy++) params.C[ix][iy].Read(coef,params.DEGX1,params.DEGX2,params.DEGY1,params.DEGY2);
+  debug_cout << "ZINI,ZFIN " << ZINI << " " << ZFIN << std::endl;;
+  debug_cout << "PMIN " << PMIN << std::endl;;
+  debug_cout << "BENDX " << BENDX << " BENDX_X2 " << BENDX_X2 << " BENDX_Y2 " << BENDX_Y2 << " BENDY_XY " << BENDY_XY << std::endl;
+  debug_cout << "Txmax " << Txmax << " Tymax " << Tymax << " XFmax " << XFmax << " Dtxy " << Dtxy << std::endl; 
+  debug_cout << "Nbinx " << Nbinx << " Nbiny " << Nbiny << std::endl;
+  debug_cout << "GridOptions " << XGridOption << " " << YGridOption << std::endl;
+  debug_cout << "DEGX1 " << DEGX1 << " DEGX2 " << DEGX2 << " DEGY1 " << DEGY1 << " DEGY2 " << DEGY2 << std::endl;
+  debug_cout << "bending at ZINI " << BENDX << " rad.MeV " << std::endl;
+
+  for(int ix=0; ix<Nbinx; ix++) for(int iy=0; iy<Nbiny; iy++) C[ix][iy].Read(coef,DEGX1,DEGX2,DEGY1,DEGY2);
+
+   Xmax = ZINI*Txmax; 
+   Ymax = ZINI*Tymax;
 }
 
-int extrap(const double zi,const double zf,const float xi,const float yi,const float txi,const float tyi,const float qop, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop)
+int extrap(const float xi,const float yi,const float txi,const float tyi,const float qop, const SciFi::Parameters *params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop)
 // extrapolation from plane zi to plane zf, from initial state (xi,yi,txi,tyi,qop) to final state (xf,yf,txf,tyf)
 // the bending from origin to zi is approximated by adding (bend+bendx_x2*u^2+bendx_y2*v^2)*qop to u=xi/zi and bendy_xy*u*v*qop to v=yi/zi
 // quad_inperp (logical): if true, the quadratic interpolation is used (better, with a little bit more computations)
 // XGridO[tion and YGridOption describe the choice of xy grid. By default, it is 1 (equally spaced values)   
 {
+  const float zi = params->ZINI;
+  const float zf = params->ZFIN;
+  
   float xx,yy,dx,dy,ux,uy;
   int ix,iy;
-  if(fabs(xi)>params.Xmax||fabs(yi)>params.Ymax) return 0;
-  switch(params.XGridOption) {
-    case 1: xx = xi/params.Xmax; break;
-    case 2: xx = sqr(xi/params.Xmax); if(xi<0) xx = -xx; break;
-    case 3: xx = xi/params.Xmax; xx = xx*xx*xx; break;
-    case 4: xx = asin(xi/params.Xmax)*2/M_PI; break;
+  if(fabs(xi)>params->Xmax||fabs(yi)>params->Ymax) return 0;
+  switch(params->XGridOption) {
+    case 1: xx = xi/params->Xmax; break;
+    case 2: xx = sqr(xi/params->Xmax); if(xi<0) xx = -xx; break;
+    case 3: xx = xi/params->Xmax; xx = xx*xx*xx; break;
+    case 4: xx = asin(xi/params->Xmax)*2/M_PI; break;
   }
-  switch(params.YGridOption) {
-    case 1: yy = yi/params.Ymax; break;
-    case 2: yy = sqr(yi/params.Ymax); if(yi<0) yy = -yy; break;
-    case 3: yy = yi/params.Ymax; yy = yy*yy*yy; break;
-    case 4: yy = asin(yi/params.Ymax)*2/M_PI; break;
+  switch(params->YGridOption) {
+    case 1: yy = yi/params->Ymax; break;
+    case 2: yy = sqr(yi/params->Ymax); if(yi<0) yy = -yy; break;
+    case 3: yy = yi/params->Ymax; yy = yy*yy*yy; break;
+    case 4: yy = asin(yi/params->Ymax)*2/M_PI; break;
   }
-  dx = params.Nbinx*(xx+1)/2; ix = dx; dx -= ix;
-  dy = params.Nbiny*(yy+1)/2; iy = dy; dy -= iy;
+  dx = params->Nbinx*(xx+1)/2; ix = dx; dx -= ix;
+  dy = params->Nbiny*(yy+1)/2; iy = dy; dy -= iy;
 
-  //ux = (txi-xi/zi-bend*qop)/params.Dtxy; uy = (tyi-yi/zi)/params.Dtxy;
-  double bendx = params.BENDX+params.BENDX_X2*sqr(xi/zi)+params.BENDX_Y2*sqr(yi/zi);           
-  double bendy = params.BENDY_XY*(xi/zi)*(yi/zi);                                
-  ux = (txi-xi/zi-bendx*qop)/params.Dtxy; uy = (tyi-yi/zi-bendy*qop)/params.Dtxy; 
+  //ux = (txi-xi/zi-bend*qop)/params->Dtxy; uy = (tyi-yi/zi)/params->Dtxy;
+  double bendx = params->BENDX+params->BENDX_X2*sqr(xi/zi)+params->BENDX_Y2*sqr(yi/zi);           
+  double bendy = params->BENDY_XY*(xi/zi)*(yi/zi);                                
+  ux = (txi-xi/zi-bendx*qop)/params->Dtxy; uy = (tyi-yi/zi-bendy*qop)/params->Dtxy; 
   if(fabs(ux)>2||fabs(uy)>2) return 0;
 
   Coef c;
 
-  if(params.QuadraticInterpolation) {
+  if(params->QuadraticInterpolation) {
     float gx,gy;
     gx = dx-.5; gy = dy-.5;
     //if(gx*gx+gy*gy>.01) return 0;
     if(ix==0) { ix = 1; gx -= 1.; }
-    if(ix==params.Nbinx-1) { ix = params.Nbinx-2; gx += 1.; }
+    if(ix==params->Nbinx-1) { ix = params->Nbinx-2; gx += 1.; }
     if(iy==0) { iy = 1; gy -= 1.; }
-    if(iy==params.Nbiny-1) { iy = params.Nbiny-2; gy += 1.; }
+    if(iy==params->Nbiny-1) { iy = params->Nbiny-2; gy += 1.; }
 
     int rx,ry,sx,sy;
     rx = (gx>=0); sx = 2*rx-1; ry = (gy>=0); sy = 2*ry-1;
     Coef c00,cp0,c0p,cn0,c0n,cadd;
-    c00 = params.C[ix][iy]; cp0 = params.C[ix+1][iy]; c0p = params.C[ix][iy+1]; c0n = params.C[ix][iy-1]; cn0 = params.C[ix-1][iy];
-    cadd = params.C[ix+sx][iy+sy];
+    c00 = params->C[ix][iy]; cp0 = params->C[ix+1][iy]; c0p = params->C[ix][iy+1]; c0n = params->C[ix][iy-1]; cn0 = params->C[ix-1][iy];
+    cadd = params->C[ix+sx][iy+sy];
     float gxy = gx*gy, gx2 = gx*gx, gy2 = gy*gy, g2 = gx*gx+gy*gy;
     c = c00*(1-g2) + (cp0*(gx2+gx) + cn0*(gx2-gx) + c0p*(gy2+gy) + c0n*(gy2-gy))*.5
       + ((c00+cadd)*sx*sy - cp0*rx*sy + cn0*(!rx)*sy - c0p*ry*sx + c0n*(!ry)*sx)*gxy;
@@ -139,8 +156,8 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
     int jx,jy;
     if(dx<.5) { jx = ix-1; ex = .5+dx; fx = .5-dx; } else { jx = ix+1; ex = 1.5-dx; fx = dx-.5; }
     if(dy<.5) { jy = iy-1; ey = .5+dy; fy = .5-dy; } else { jy = iy+1; ey = 1.5-dy; fy = dy-.5; }
-    if(ix<0||ix>=params.Nbinx||iy<0||iy>=params.Nbiny || jx<0||jx>=params.Nbinx||jy<0||jy>=params.Nbiny) return 0;
-    Coef c_ii = params.C[ix][iy], c_ij = params.C[ix][jy], c_ji = params.C[jx][iy], c_jj = params.C[jx][jy];
+    if(ix<0||ix>=params->Nbinx||iy<0||iy>=params->Nbiny || jx<0||jx>=params->Nbinx||jy<0||jy>=params->Nbiny) return 0;
+    Coef c_ii = params->C[ix][iy], c_ij = params->C[ix][jy], c_ji = params->C[jx][iy], c_jj = params->C[jx][jy];
     //printf("x00 %f %f %f %f\n",c_ii.x00[0],c_ij.x00[0],c_ji.x00[0],c_jj.x00[0]);
     c = c_ii*ex*ey + c_ij*ex*fy + c_ji*fx*ey + c_jj*fx*fy;
   }
@@ -151,7 +168,7 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
   tyf = tyi;
   // corrections to straight line
   der_xf_qop = 0; 
-  float fq = qop*params.PMIN;
+  float fq = qop*params->PMIN;
   float ff = 1.f;
   for(int deg=0; deg<c.Degx2; deg++) {
     double coef = c.x00[deg]; if(deg<c.Degx1) coef += c.x10[deg]*ux+c.x01[deg]*uy;
@@ -163,7 +180,7 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
     xf  += ( c.x10[deg]*ux +  c.x01[deg]*uy)*ff;
     txf += (c.tx10[deg]*ux + c.tx01[deg]*uy)*ff;
   }
-  der_xf_qop *= params.PMIN;  
+  der_xf_qop *= params->PMIN;  
   ff = 1.f;
   for(int deg=0; deg<c.Degy2; deg++) {
     ff *= fq;
@@ -176,15 +193,14 @@ int extrap(const double zi,const double zf,const float xi,const float yi,const f
   return 1;
 }
 
-void test(parameters params) {}
+void test(const SciFi::Parameters *params) {}
 
-int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update)
+int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const SciFi::Parameters *params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update)
 {
   float r_prev = qop;
   for ( int i = 0; i < MAXITER; ++i ) {
     printf("At iteration %u \n", i);
     int ret = extrap(
-      params.ZINI, params.ZFIN,
       UT_state.x, UT_state.y,
       UT_state.tx, UT_state.ty,
       r_prev, params,

@@ -14,6 +14,7 @@
 #include "UTDefinitions.cuh"
 #include "Logger.h"
 #include "PrVeloUTMagnetToolDefinitions.h"
+#include "SciFiParametrization.h"
 
 /**
  * @brief Struct intended as a singleton with constants defined on GPU.
@@ -56,7 +57,10 @@ struct Constants {
   const char* host_scifi_geometry; 
   PrUTMagnetTool* dev_ut_magnet_tool;
   
-  // Muon classification model constatns
+  // SciFi parametrization constants
+  const SciFi::Parameters* host_scifi_params;
+
+  // Muon classification model constants
   int muon_catboost_n_features;
   int muon_catboost_n_trees;
   int* dev_muon_catboost_tree_depths;

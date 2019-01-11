@@ -38,22 +38,22 @@ Coef operator-(Coef a, Coef b);
 
 Coef operator*(Coef a, double p);
 
-struct parameters{ 
+namespace SciFi {
+struct Parameters{
+  
+  Parameters(const char *name);
+ 
   double ZINI,ZFIN,PMIN,BENDX, BENDX_X2, BENDX_Y2, BENDY_XY,Txmax,Tymax,XFmax, Xmax,Ymax,Dtxy,step;
   int Nbinx,Nbiny,XGridOption,YGridOption,QuadraticInterpolation,DEGX1,DEGX2,DEGY1,DEGY2;
   Coef C[NBINXMAX][NBINYMAX];
 };
 
+}
 /*************************************************************************/
 
-
-
-/*---------------------------------------------------------------------------------------------*/
-void ReadCoef(char *name, parameters& params);
-
 /*-------------------------------------------------------------------------------------------------------------------------*/
-int extrap(const double zi,const double zf,const float xi,const float yi,const float txi,const float tyi,const float qop, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop);
+int extrap(const float xi,const float yi,const float txi,const float tyi,const float qop, const SciFi::Parameters *params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop);
 
-int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const parameters params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update);
+int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const SciFi::Parameters *params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update);
 
-void test(parameters params);
+void test(const SciFi::Parameters *params);
