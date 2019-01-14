@@ -41,6 +41,7 @@ Coef operator*(Coef a, double p);
 namespace SciFi {
 struct Parameters{
   
+  Parameters() {};
   Parameters(const char *name);
  
   double ZINI,ZFIN,PMIN,BENDX, BENDX_X2, BENDX_Y2, BENDY_XY,Txmax,Tymax,XFmax, Xmax,Ymax,Dtxy,step;
@@ -52,8 +53,6 @@ struct Parameters{
 /*************************************************************************/
 
 /*-------------------------------------------------------------------------------------------------------------------------*/
-int extrap(const float xi,const float yi,const float txi,const float tyi,const float qop, const SciFi::Parameters *params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop);
+int extrap(const float xi,const float yi,const float txi,const float tyi,const float qop, const SciFi::Parameters& params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop);
 
-int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const SciFi::Parameters *params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update);
-
-void test(const SciFi::Parameters *params);
+int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const SciFi::Parameters& params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update);

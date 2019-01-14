@@ -63,8 +63,7 @@ void Constants::initialize_constants() {
   // extrapolation parametrization
   char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.tab";
   debug_cout << "Reading coefs: " << name_coef << std::endl;
-  const SciFi::Parameters params = SciFi::Parameters(name_coef);
-  host_scifi_params = &params;
+  host_scifi_params = SciFi::Parameters(name_coef);
 }
 
 void Constants::initialize_ut_decoding_constants(

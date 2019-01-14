@@ -30,7 +30,7 @@ int run_momentum_forward_on_CPU(
   const uint* host_scifi_hit_count,
   const char* host_scifi_geometry,
   const std::array<float, 9>& host_inv_clus_res,
-  const SciFi::Parameters* scifi_params,
+  const SciFi::Parameters& scifi_params,
   const uint* host_velo_tracks_atomics,
   const uint* host_velo_track_hit_number,
   const char* host_velo_states,
@@ -103,10 +103,6 @@ int run_momentum_forward_on_CPU(
   t_ut_tracks->Branch("velo_tx", &velo_tx);
   t_ut_tracks->Branch("ut_qop", &ut_qop);
 #endif
-
-  char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.tab";
-  debug_cout << "Reading coefs: " << name_coef << std::endl;
-  const SciFi::Parameters params = SciFi::Parameters(name_coef);
 
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
 
@@ -209,10 +205,9 @@ int run_momentum_forward_on_CPU(
       float eloss = 2.f/3e5;
       
       int ret = extrap(
-                       //params.ZINI, params.ZFIN,
         UT_state_from_velo.x, UT_state_from_velo.y,
         UT_state_from_velo.tx, UT_state_from_velo.ty,
-        qop, &params,
+        qop, scifi_params,
         xf, yf, txf, tyf, der_xf_qop);
       
       if ( true_scifi_ids.size() == 0 )
@@ -247,10 +242,9 @@ int run_momentum_forward_on_CPU(
               x_extrap = xf + der_xf_qop * (xf - true_x_0);
               match = true;
               
-              //test(&params);
               int ret_qop = update_qop_estimate(
                 UT_state_from_velo, qop,
-                true_x_0, &params, 
+                true_x_0, scifi_params, 
                 xf, yf, txf, tyf, der_xf_qop, qop_update);
               printf("after update_qop_estimate \n");
               if ( !ret_qop ) break;
