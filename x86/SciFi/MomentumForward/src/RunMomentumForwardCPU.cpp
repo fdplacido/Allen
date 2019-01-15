@@ -42,6 +42,7 @@ int run_momentum_forward_on_CPU(
   const float* host_ut_z,
   const uint* host_ut_track_velo_indices,
   const std::vector< std::vector< std::vector< uint32_t > > > scifi_ids_ut_tracks,
+  const std::vector< std::vector< float > > p_events,
   const uint number_of_events
 ) {
 
@@ -63,14 +64,17 @@ int run_momentum_forward_on_CPU(
   float UT_x, UT_y, UT_z, UT_tx, UT_ty;
   float velo_x_extrap, velo_tx;
   int n_hits_in_window_0, n_hits_in_window_3, n_x_combinations;
-  
+  float p_diff_before_update, p_diff_after_update;
+
   t_Forward_tracks->Branch("qop", &qop);
   t_Forward_tracks->Branch("state_x", &state_x);
   t_Forward_tracks->Branch("state_y", &state_y);
   t_Forward_tracks->Branch("state_z", &state_z);
   t_Forward_tracks->Branch("state_tx", &state_tx);
   t_Forward_tracks->Branch("state_ty", &state_ty);
+
   t_statistics->Branch("n_tracks", &n_tracks);
+
   t_scifi_hits->Branch("planeCode", &planeCode);
   t_scifi_hits->Branch("LHCbID", &LHCbID);
   t_scifi_hits->Branch("x0", &x0);
@@ -80,6 +84,7 @@ int run_momentum_forward_on_CPU(
   t_scifi_hits->Branch("dzdy", &dzdy);
   t_scifi_hits->Branch("yMin", &yMin);
   t_scifi_hits->Branch("yMax", &yMax);
+
   t_extrap->Branch("xf", &xf);
   t_extrap->Branch("yf", &yf);
   t_extrap->Branch("txf", &txf);
@@ -91,9 +96,12 @@ int run_momentum_forward_on_CPU(
   t_extrap->Branch("dx", &dx);
   t_extrap->Branch("ut_qop", &ut_qop);
   t_extrap->Branch("qop_update", &qop_update);
+  t_extrap->Branch("p_diff_before_update", &p_diff_before_update);
+  t_extrap->Branch("p_diff_after_update", &p_diff_after_update);
   t_extrap->Branch("n_hits_in_window_0", &n_hits_in_window_0);
   t_extrap->Branch("n_hits_in_window_3", &n_hits_in_window_3);
   t_extrap->Branch("n_x_combinations", &n_x_combinations);
+
   t_ut_tracks->Branch("ut_x", &UT_x);
   t_ut_tracks->Branch("ut_y", &UT_y);
   t_ut_tracks->Branch("ut_z", &UT_z);
@@ -241,22 +249,29 @@ int run_momentum_forward_on_CPU(
               true_x_0 = scifi_hits.x0[hit_index];
               x_extrap = xf + der_xf_qop * (xf - true_x_0);
               match = true;
-              
-              int ret_qop = update_qop_estimate(
-                UT_state_from_velo, qop,
-                true_x_0, scifi_params, 
-                xf, yf, txf, tyf, der_xf_qop, qop_update);
-              printf("after update_qop_estimate \n");
-              if ( !ret_qop ) break;
               break;
             }
           }
           if ( match ) break;
         }
+        
+        int ret_qop = update_qop_estimate(
+          UT_state_from_velo, qop,
+          true_x_0, scifi_params, 
+          xf, yf, txf, tyf, der_xf_qop, qop_update);
+        
+        if ( ret_qop ) {
+          // check momentum resolution
+          float p_true = p_events[i_event][i_veloUT_track];
+          p_diff_after_update = p_true - std::abs( 1.f/qop_update );
+          p_diff_before_update = p_true - std::abs( 1.f/qop );
+        }
+        
         if (!match) {
           //debug_cout << "Size of matched ids = " << true_scifi_ids.size() << std::endl;
           res_x_0 = -10000;
         }
+      
         // check combinatorics within search window in layer 0
         const float max_dx = 100;
         std::vector<int> candidates_x_0;

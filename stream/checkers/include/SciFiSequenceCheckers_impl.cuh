@@ -33,8 +33,10 @@ void SequenceVisitor::check<consolidate_scifi_tracks_t>(
     constants.host_inv_clus_res,
     host_buffers.host_number_of_selected_events[0]);
   
+  std::vector< std::vector< float> > p_events;
   checker_invoker.check<TrackCheckerForward>(
     start_event_offset,
-    tracks);
+    tracks,
+    p_events);
 }
  

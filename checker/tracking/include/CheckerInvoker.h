@@ -47,9 +47,11 @@ struct CheckerInvoker {
   template<typename T>
   std::vector< std::vector< std::vector<uint32_t> > > check(
     const uint start_event_offset,
-    const std::vector<trackChecker::Tracks>& tracks) const
+    const std::vector<trackChecker::Tracks>& tracks,
+    std::vector< std::vector< float> >& p_events) const
   {
     std::vector< std::vector< std::vector<uint32_t> > > scifi_ids_events;
+    
     if (is_mc_folder_populated) {
       T trackChecker {};
 #ifdef WITH_ROOT
@@ -64,24 +66,34 @@ struct CheckerInvoker {
 
         std::vector<uint32_t> matched_mcp_keys = trackChecker(event_tracks, mcassoc, mcps);
         std::vector< std::vector<uint32_t> > scifi_ids_tracks;
+        std::vector< float > p_tracks;
         for ( const auto key : matched_mcp_keys ) {
           std::vector<uint32_t> scifi_ids;
-          if ( !(key == 0xFFFFFF) ) { // track was not matched to an MCP
+          float p = -1000;
+          if ( !(key == 0xFFFFFF) ) { // track was matched to an MCP
+            // Find this MCP
             for ( const auto mcp : mc_event.scifi_mcps ) {
-              if ( mcp.key == key && mcp.isLong) { // found matched long MCP
-                for ( const auto id : mcp.hits ) {
-                  const uint32_t detector_id = (id >> 20) & 0xFFF;
-                  if ( detector_id == 0xa00 ) { // hit in the SciFi
-                    scifi_ids.push_back(id);
+              if ( mcp.key == key ) {
+                // Save momentum of this MCP
+                p = mcp.p;
+                // Find SciFi IDs of this MCP
+                if ( mcp.isLong) { // found matched long MCP
+                  for ( const auto id : mcp.hits ) {
+                    const uint32_t detector_id = (id >> 20) & 0xFFF;
+                    if ( detector_id == 0xa00 ) { // hit in the SciFi
+                      scifi_ids.push_back(id);
+                    }
                   }
                 }
               }
             }
           }
           scifi_ids_tracks.push_back(scifi_ids);
+          p_tracks.push_back(p);
         }
       
         scifi_ids_events.push_back(scifi_ids_tracks);
+        p_events.push_back(p_tracks);
         
         // Check all tracks for duplicate LHCb IDs
         for (int i_track = 0; i_track < event_tracks.size(); ++i_track) {

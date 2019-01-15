@@ -26,10 +26,13 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
     host_buffers.host_ut_qop,
     host_buffers.host_number_of_selected_events[0]);
 
-  host_buffers.scifi_ids_ut_tracks = checker_invoker.check<TrackCheckerVeloUT>(start_event_offset, tracks);
+  std::vector< std::vector< float> > p_events;
+  host_buffers.scifi_ids_ut_tracks = checker_invoker.check<TrackCheckerVeloUT>(
+    start_event_offset, 
+    tracks,
+    p_events);
 
   // Run MomentumForward on x86
- 
   run_momentum_forward_on_CPU(
     host_buffers.scifi_tracks_events.data(),
     host_buffers.host_atomics_scifi,
@@ -49,6 +52,7 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
     host_buffers.host_ut_z,
     host_buffers.host_ut_track_velo_indices,
     host_buffers.scifi_ids_ut_tracks,
+    p_events,
     host_buffers.host_number_of_selected_events[0]);
   
 }

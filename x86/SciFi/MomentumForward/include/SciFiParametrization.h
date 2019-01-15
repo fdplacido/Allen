@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "MiniState.cuh"
+#include "Logger.h"
 
 /*
   Author: Pierre Billoir
