@@ -61,7 +61,7 @@ void Constants::initialize_constants() {
   cudaCheck(cudaMemcpy(dev_inv_clus_res, &host_inv_clus_res, host_inv_clus_res.size() * sizeof(float), cudaMemcpyHostToDevice));
 
   // extrapolation parametrization
-  char name_coef[200] = "/home/dvombruc/Allen/input/test_UT_T1.tab";
+  char name_coef[200] = "../input/test_UT_T1.tab";
   debug_cout << "Reading coefs: " << name_coef << std::endl;
   host_scifi_params = SciFi::Parameters(name_coef);
 }
