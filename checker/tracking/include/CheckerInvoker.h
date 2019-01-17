@@ -57,6 +57,8 @@ struct CheckerInvoker {
 #ifdef WITH_ROOT
       trackChecker.histos.initHistos(trackChecker.histo_categories());
 #endif
+      int n_other_pids = 0;
+      int n_pids = 0;
       for (int evnum = 0; evnum < selected_mc_events.size(); ++evnum) {
         const auto& mc_event = selected_mc_events[evnum];
         const auto& event_tracks = tracks[evnum];
@@ -69,13 +71,32 @@ struct CheckerInvoker {
         std::vector< float > p_tracks;
         for ( const auto key : matched_mcp_keys ) {
           std::vector<uint32_t> scifi_ids;
-          float p = -1000;
+          float p = 1e9;
           if ( !(key == 0xFFFFFF) ) { // track was matched to an MCP
             // Find this MCP
             for ( const auto mcp : mc_event.scifi_mcps ) {
               if ( mcp.key == key ) {
-                // Save momentum of this MCP
-                p = mcp.p;
+                // Find out charge of this MCP
+                if ( std::abs(mcp.pid) != 11 
+                     && std::abs(mcp.pid) != 13 
+                     && std::abs(mcp.pid) != 211 
+                     && std::abs(mcp.pid) != 2212 
+                     && std::abs(mcp.pid) != 321 ) {
+                  //debug_cout << "PID = " << mcp.pid << std::endl;
+                  n_other_pids++;
+                }
+                else
+                  n_pids++;
+                // e- (11), mu- (13), tau- (15): positive PID
+                float charge;
+                if ( std::abs(mcp.pid ) == 11 || std::abs(mcp.pid) == 13 || std::abs(mcp.pid) == 15 ) { 
+                  charge = -1. * std::copysign(1., mcp.pid);
+                }
+                // p, pi+, K+: positive PID
+                else
+                  charge = std::copysign(1., mcp.pid);
+                // Save momentum and charge of this MCP
+                p = mcp.p * charge;
                 // Find SciFi IDs of this MCP
                 if ( mcp.isLong) { // found matched long MCP
                   for ( const auto id : mcp.hits ) {
@@ -113,6 +134,7 @@ struct CheckerInvoker {
           } 
         }
       }
+      debug_cout << "Fraction of PIDs w/o charge ID = " << float(n_other_pids)/n_pids << std::endl;
     }
     return scifi_ids_events;
   }

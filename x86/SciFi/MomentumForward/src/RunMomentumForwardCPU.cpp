@@ -121,8 +121,6 @@ int run_momentum_forward_on_CPU(
   t_extrap_T1->Branch("p_diff_after_update", &p_diff_after_update_t1);
   t_extrap_T1->Branch("p_diff_before_after", &p_diff_before_after_t1);
   t_extrap_T1->Branch("n_hits_in_window_0", &n_hits_in_window_0_t1);
-  t_extrap_T1->Branch("n_hits_in_window_0_true_p", &n_hits_in_window_0_t1_true_p);
-  t_extrap_T1->Branch("n_hits_in_window_3", &n_hits_in_window_3_t1);
   t_extrap_T1->Branch("n_hits_in_zone", &n_hits_in_zone_t1);
   t_extrap_T1->Branch("isLong", &isLong);
   t_extrap_T1->Branch("p_true", &p_true);
@@ -144,8 +142,6 @@ int run_momentum_forward_on_CPU(
   t_extrap_T3->Branch("p_diff_before_update", &p_diff_before_update_t3);
   t_extrap_T3->Branch("p_diff_after_update", &p_diff_after_update_t3);
   t_extrap_T3->Branch("n_hits_in_window_0", &n_hits_in_window_0_t3);
-  t_extrap_T3->Branch("n_hits_in_window_0_true_p", &n_hits_in_window_0_t3_true_p);
-  t_extrap_T3->Branch("n_hits_in_window_3", &n_hits_in_window_3_t3);
   t_extrap_T3->Branch("n_hits_in_zone", &n_hits_in_zone_t3);
   t_extrap_T3->Branch("isLong", &isLong);
   t_extrap_T3->Branch("p_true", &p_true);
@@ -267,12 +263,14 @@ int run_momentum_forward_on_CPU(
       t1_extrap_worked = false;
       t3_extrap_worked = false;
       isLong = false;
+      match_t1 = false;
+      match_t3 = false;
       n_hits_in_window_0_t1 = 0;
-      n_hits_in_window_0_t1_true_p = 0;
       n_hits_in_window_0_t3 = 0;
-      n_hits_in_window_0_t3_true_p = 0;
       
-      // if p_true = -1000 -> veloUT track was not matched to an MCP
+      // sign of momentum -> charge of MCP
+      // Caution: this is only set correctly if the veloUT track was matched to an MCP
+      // set to 1e9 if not matched
       p_true = p_events[i_event][i_veloUT_track];
 
 #ifdef WITH_ROOT
@@ -355,22 +353,33 @@ int run_momentum_forward_on_CPU(
             
             if ( ret_qop ) {
               // check momentum resolution
-              p_diff_after_update_t1 = p_true - std::abs( 1.f/qop_update_t1 );
-              p_diff_before_update_t1 = p_true - std::abs( 1.f/qop );
+              p_diff_after_update_t1 = std::abs(p_true) - std::abs( 1.f/qop_update_t1 );
+              p_diff_before_update_t1 = std::abs(p_true) - std::abs( 1.f/qop );
               p_diff_before_after_t1 = std::abs( 1.f/qop ) - std::abs( 1.f/qop_update_t1 );
             }
 
             // Distance in x to correct hit in other x layer of station
             match_t1_other = false;
+            float slope1, slope2;
+            if ( qop < 0 ) {
+              slope1 = 0.3e6;
+              slope2 = 0.2e6;
+            } else {
+              slope1 = -0.2e6;
+              slope2 = -0.3e6;
+            }
             for ( const auto true_id : true_scifi_ids ) {
               for ( int i_hit = 0; i_hit < n_hits_other; ++i_hit ) { 
                 const int hit_index = x_zone_offset_begin_other + i_hit;
                 const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
                 if ( true_id == lhcbid ) {
                   float true_x_t1_other = scifi_hits.x0[hit_index];
-                  res_x_other_t1 = true_x_t1 - scifi_hits.x0[hit_index];
-                  match_t1_other = true;
-                  break;
+                  if ( fabsf(true_x_t1-true_x_t1_other) < 20.f - slope1 * qop 
+                       && fabsf(true_x_t1-true_x_t1_other) > -20.f - slope2 * qop) {
+                    res_x_other_t1 = true_x_t1 - scifi_hits.x0[hit_index];
+                    match_t1_other = true;
+                    break;
+                  }
                 }
               }
               if ( match_t1_other ) break;
@@ -381,6 +390,15 @@ int run_momentum_forward_on_CPU(
         } // # of true SciFi IDs > 0
         
         // check combinatorics within search window in layer 0
+        float slope1, slope2;
+        if ( qop < 0 ) {
+          slope1 = 0.3e6;
+          slope2 = 0.2e6;
+        } else {
+          slope1 = -0.2e6;
+          slope2 = -0.3e6;
+        }
+                
         for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) { 
           const int hit_index = x_zone_offset_begin + i_hit;
           const float x = scifi_hits.x0[hit_index];
@@ -391,14 +409,13 @@ int run_momentum_forward_on_CPU(
             for ( int i_hit_other = 0; i_hit_other < n_hits_other; ++i_hit_other ) { 
               const int hit_index_other = x_zone_offset_begin_other + i_hit_other;
               const float x_other = scifi_hits.x0[hit_index_other];
-              if ( fabsf(x-x_other) < 20 + 0.3e6 * fabsf(qop) ) {
+              if ( fabsf(x-x_other) < 20.f - slope1 * qop 
+                   && fabsf(x-x_other) > -20.f - slope2 * qop) {
                 n_hits_in_window_other_t1++;
               }
             }
             t_other_x_layer_t1->Fill();
           }
-          if ( fabsf(x-xf_t1) < 20 + 1.e6 * fabsf(1./p_true) )
-            n_hits_in_window_0_t1_true_p++;
         }
         n_hits_in_zone_t1 = n_hits;
       
@@ -474,21 +491,32 @@ int run_momentum_forward_on_CPU(
             
             if ( ret_qop ) {
               // check momentum resolution
-              p_diff_after_update_t3 = p_true - std::abs( 1.f/qop_update_t3 );
-              p_diff_before_update_t3 = p_true - std::abs( 1.f/qop );
+              p_diff_after_update_t3 = std::abs(p_true) - std::abs( 1.f/qop_update_t3 );
+              p_diff_before_update_t3 = std::abs(p_true) - std::abs( 1.f/qop );
             }
             
             // Distance in x to correct hit in other x layer of station
             match_t3_other = false;
+            float slope1, slope2;
+            if ( qop < 0 ) {
+              slope1 = -0.2e6;
+              slope2 = -0.3e6;
+            } else {
+              slope1 = 0.3e6;
+              slope2 = 0.2e6;
+            }
             for ( const auto true_id : true_scifi_ids ) {
               for ( int i_hit = 0; i_hit < n_hits_other; ++i_hit ) { 
                 const int hit_index = x_zone_offset_begin_other + i_hit;
                 const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
                 if ( true_id == lhcbid ) {
                   float true_x_t3_other = scifi_hits.x0[hit_index];
-                  res_x_other_t3 = true_x_t3 - scifi_hits.x0[hit_index];
-                  match_t3_other = true;
-                  break;
+                  if ( fabsf(true_x_t3-true_x_t3_other) < 20.f + slope1 * qop 
+                       && fabsf(true_x_t3-true_x_t3_other) > -20.f + slope2 * qop) {
+                    res_x_other_t3 = true_x_t3 - scifi_hits.x0[hit_index];
+                    match_t3_other = true;
+                    break;
+                  }
                 }
               }
               if ( match_t3_other ) break;
@@ -498,6 +526,14 @@ int run_momentum_forward_on_CPU(
         } // # of true SciFi IDs > 0
         
         // check combinatorics within search window in layer 11
+        float slope1, slope2;
+        if ( qop < 0 ) {
+          slope1 = -0.2e6;
+          slope2 = -0.3e6;
+        } else {
+          slope1 = 0.3e6;
+          slope2 = 0.2e6;
+        }
         for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) { 
           const int hit_index = x_zone_offset_begin + i_hit;
           const float x = scifi_hits.x0[hit_index];
@@ -506,16 +542,15 @@ int run_momentum_forward_on_CPU(
             // check combinatorics in other x-layer of last station
             n_hits_in_window_other_t3 = 0;
             for ( int i_hit_other = 0; i_hit_other < n_hits_other; ++i_hit_other ) { 
-                const int hit_index_other = x_zone_offset_begin_other + i_hit_other;
-                const float x_other = scifi_hits.x0[hit_index_other];
-                if ( fabsf(x-x_other) < 20 + 0.3e6 * fabsf(qop) ) {
-                  n_hits_in_window_other_t3++;
-                }
+              const int hit_index_other = x_zone_offset_begin_other + i_hit_other;
+              const float x_other = scifi_hits.x0[hit_index_other];
+              if ( fabsf(x-x_other) < 20.f + slope1 * qop 
+                   && fabsf(x-x_other) > -20.f + slope2 * qop) {
+                n_hits_in_window_other_t3++;
+              }
             }
             t_other_x_layer_t3->Fill();
           }
-          if ( fabsf(x-xf_t3) < 40 + 1.5e6 * fabsf(1./p_true) )
-            n_hits_in_window_0_t3_true_p++;
         }
         n_hits_in_zone_t3 = n_hits;
 
