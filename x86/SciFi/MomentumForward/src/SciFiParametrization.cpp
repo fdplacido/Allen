@@ -183,11 +183,16 @@ int extrap(const float xi,const float yi,const float txi,const float tyi,const f
   return 1;
 }
 
-int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const SciFi::Parameters& params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update)
+int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const SciFi::Parameters& params, const float xf_ini, const float yf_ini, const float txf_ini, const float tyf_ini, const float der_xf_qop_ini, float& qop_update)
 {
   float r_prev = qop;
+  float xf = xf_ini;
+  float yf = yf_ini;
+  float txf = txf_ini;
+  float tyf = tyf_ini;
+  float der_xf_qop = der_xf_qop_ini;
   for ( int i = 0; i < MAXITER; ++i ) {
-    debug_cout << "At iteration " << i << std::endl; 
+    //debug_cout << "At iteration " << i << std::endl; 
     int ret = extrap(
       UT_state.x, UT_state.y,
       UT_state.tx, UT_state.ty,
@@ -195,7 +200,7 @@ int update_qop_estimate(const MiniState& UT_state, const float qop, const float 
       xf, yf, txf, tyf, der_xf_qop);
     if ( !ret ) return 0;
     qop_update = r_prev + (xhit - xf) / der_xf_qop;
-    debug_cout << "r - r_prev = " << std::abs(qop_update-r_prev) << std::endl;
+    //debug_cout << "r - r_prev = " << std::abs(qop_update-r_prev) << std::endl;
     if ( std::abs(qop_update-r_prev) < RCONVERGENCE )
       return 1;
     r_prev = qop_update;

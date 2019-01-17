@@ -56,4 +56,4 @@ struct Parameters{
 /*-------------------------------------------------------------------------------------------------------------------------*/
 int extrap(const float xi,const float yi,const float txi,const float tyi,const float qop, const SciFi::Parameters& params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop);
 
-int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const SciFi::Parameters& params, float& xf,float& yf,float& txf,float& tyf, float& der_xf_qop, float& qop_update);
+int update_qop_estimate(const MiniState& UT_state, const float qop, const float xhit, const SciFi::Parameters& params, const float xf_ini, const float yf_ini, const float txf_ini, const float tyf_ini, const float der_xf_qop_ini, float& qop_update);
