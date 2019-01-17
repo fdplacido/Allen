@@ -73,7 +73,7 @@ int run_momentum_forward_on_CPU(
   float UT_x, UT_y, UT_z, UT_tx, UT_ty, ut_qop;
   float velo_x_extrap, velo_tx;
   int n_hits_in_window_0_t1 = 0, n_hits_in_window_0_t1_true_p = 0, n_hits_in_window_3_t1 = 0, n_hits_in_zone_t1 = 0;
-  float p_diff_before_update_t1, p_diff_after_update_t1;
+  float p_diff_before_update_t1, p_diff_after_update_t1, p_diff_before_after_t1;
   float xf_t3, yf_t3, txf_t3, tyf_t3, der_xf_qop_t3, qop_update_t3;
   float res_x_0_t3, res_x_3_t3, dx_t3, x_extrap_t3, true_x_t3;
   int n_hits_in_window_0_t3 = 0, n_hits_in_window_0_t3_true_p = 0, n_hits_in_window_3_t3 = 0, n_hits_in_zone_t3 = 0;
@@ -113,6 +113,7 @@ int run_momentum_forward_on_CPU(
   t_extrap_T1->Branch("qop_update", &qop_update_t1);
   t_extrap_T1->Branch("p_diff_before_update", &p_diff_before_update_t1);
   t_extrap_T1->Branch("p_diff_after_update", &p_diff_after_update_t1);
+  t_extrap_T1->Branch("p_diff_before_after", &p_diff_before_after_t1);
   t_extrap_T1->Branch("n_hits_in_window_0", &n_hits_in_window_0_t1);
   t_extrap_T1->Branch("n_hits_in_window_0_true_p", &n_hits_in_window_0_t1_true_p);
   t_extrap_T1->Branch("n_hits_in_window_3", &n_hits_in_window_3_t1);
@@ -327,6 +328,7 @@ int run_momentum_forward_on_CPU(
               // check momentum resolution
               p_diff_after_update_t1 = p_true - std::abs( 1.f/qop_update_t1 );
               p_diff_before_update_t1 = p_true - std::abs( 1.f/qop );
+              p_diff_before_after_t1 = std::abs( 1.f/qop ) - std::abs( 1.f/qop_update_t1 );
             }
           }
         

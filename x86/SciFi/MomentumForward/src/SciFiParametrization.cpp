@@ -192,15 +192,15 @@ int update_qop_estimate(const MiniState& UT_state, const float qop, const float 
   float tyf = tyf_ini;
   float der_xf_qop = der_xf_qop_ini;
   for ( int i = 0; i < MAXITER; ++i ) {
-    //debug_cout << "At iteration " << i << std::endl; 
-    int ret = extrap(
-      UT_state.x, UT_state.y,
-      UT_state.tx, UT_state.ty,
-      r_prev, params,
-      xf, yf, txf, tyf, der_xf_qop);
-    if ( !ret ) return 0;
+    if ( i > 0 ) {
+      int ret = extrap(
+        UT_state.x, UT_state.y,
+        UT_state.tx, UT_state.ty,
+        r_prev, params,
+        xf, yf, txf, tyf, der_xf_qop);
+      if ( !ret ) return 0;
+    }
     qop_update = r_prev + (xhit - xf) / der_xf_qop;
-    //debug_cout << "r - r_prev = " << std::abs(qop_update-r_prev) << std::endl;
     if ( std::abs(qop_update-r_prev) < RCONVERGENCE )
       return 1;
     r_prev = qop_update;
