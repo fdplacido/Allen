@@ -40,7 +40,6 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
     host_buffers.host_scifi_hit_count.data(),
     constants.host_scifi_geometry,
     constants.host_inv_clus_res, 
-    constants.host_scifi_params_T1,
     host_buffers.host_atomics_velo,
     host_buffers.host_velo_track_hit_number,
     host_buffers.host_velo_states,

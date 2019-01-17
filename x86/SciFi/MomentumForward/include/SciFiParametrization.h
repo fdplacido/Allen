@@ -22,7 +22,7 @@ static constexpr int  NBINYMAX = 100;
 static constexpr int NSTEP = 50;
 static constexpr int TWODIPOLES = 0;
 static constexpr int MAXITER = 5;
-static constexpr float RCONVERGENCE = 0.1;
+static constexpr float RCONVERGENCE = 0.0001;
 
 class Coef 
 {

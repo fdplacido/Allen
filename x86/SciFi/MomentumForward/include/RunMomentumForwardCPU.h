@@ -29,7 +29,6 @@ int run_momentum_forward_on_CPU (
   const uint* host_scifi_hit_count,
   const char* host_scifi_geometry, 
   const std::array<float, 9>& host_inv_clus_res,
-  const SciFi::Parameters& scifi_params,
   const uint* host_velo_tracks_atomics,
   const uint* host_velo_track_hit_number,
   const char* host_velo_states,

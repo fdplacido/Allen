@@ -60,14 +60,6 @@ void Constants::initialize_constants() {
   host_inv_clus_res = {1/0.05, 1/0.08, 1/0.11, 1/0.14, 1/0.17, 1/0.20, 1/0.23, 1/0.26, 1/0.29};
   cudaCheck(cudaMemcpy(dev_inv_clus_res, &host_inv_clus_res, host_inv_clus_res.size() * sizeof(float), cudaMemcpyHostToDevice));
 
-  // extrapolation parametrization
-  char name_coef_T1[200] = "../input/test_UT_T1.tab";
-  debug_cout << "Reading coefs for extrapolation to T1: " << name_coef_T1 << std::endl;
-  host_scifi_params_T1 = SciFi::Parameters(name_coef_T1);
-  //char name_coef_T3[200] = "../input/test_UT_T3.tab";
-  //debug_cout << "Reading coefs for extrapolation to T3: " << name_coef_T3 << std::endl;
-  //host_scifi_params_T3 = SciFi::Parameters(name_coef_T3);
-  
 }
 
 void Constants::initialize_ut_decoding_constants(
