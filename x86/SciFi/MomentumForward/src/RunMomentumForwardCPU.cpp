@@ -222,6 +222,7 @@ int run_momentum_forward_on_CPU(
         continue;
 
       if ( ret ) {
+        
       // find x hit(s) in layer 0 that 
       // were truth matched to the veloUT track
       // first layer = zone 0 (y < 0) + zone 1 (y > 0)
@@ -254,17 +255,20 @@ int run_momentum_forward_on_CPU(
           }
           if ( match ) break;
         }
-        
-        int ret_qop = update_qop_estimate(
-          UT_state_from_velo, qop,
-          true_x_0, scifi_params, 
-          xf, yf, txf, tyf, der_xf_qop, qop_update);
-        
-        if ( ret_qop ) {
-          // check momentum resolution
-          float p_true = p_events[i_event][i_veloUT_track];
-          p_diff_after_update = p_true - std::abs( 1.f/qop_update );
-          p_diff_before_update = p_true - std::abs( 1.f/qop );
+      
+        // Update momentum estimate with true x hit position
+        if ( match ) {
+          int ret_qop = update_qop_estimate(
+            UT_state_from_velo, qop,
+            true_x_0, scifi_params, 
+            xf, yf, txf, tyf, der_xf_qop, qop_update);
+          
+          if ( ret_qop ) {
+            // check momentum resolution
+            float p_true = p_events[i_event][i_veloUT_track];
+            p_diff_after_update = p_true - std::abs( 1.f/qop_update );
+            p_diff_before_update = p_true - std::abs( 1.f/qop );
+          }
         }
         
         if (!match) {
@@ -286,61 +290,62 @@ int run_momentum_forward_on_CPU(
         // find x hit(s) in layer 3  that 
         // were truth matched to the veloUT track
         // first layer = zone 6 + zone 7
-        // int x_zone_offset_begin_6 = scifi_hit_count.zone_offset(6);
-        // int n_hits_6 = scifi_hit_count.zone_number_of_hits(6);
-        // int x_zone_offset_begin_7 = scifi_hit_count.zone_offset(7);
-        // int n_hits_7 = scifi_hit_count.zone_number_of_hits(7);
-        // int n_hits_3, x_zone_offset_begin_3;
-        // if ( yf < 0 ) {
-        //   n_hits_3 = n_hits_6;
-        //   x_zone_offset_begin_3 = x_zone_offset_begin_6;
-        // } else {
-        //   n_hits_3 = n_hits_7;
-        //   x_zone_offset_begin_3 = x_zone_offset_begin_7;
-        // }
+        // TODO: extrapolation goes to last layer (at z = 9403 mm) -> change this!!
+        int x_zone_offset_begin_6 = scifi_hit_count.zone_offset(6);
+        int n_hits_6 = scifi_hit_count.zone_number_of_hits(6);
+        int x_zone_offset_begin_7 = scifi_hit_count.zone_offset(7);
+        int n_hits_7 = scifi_hit_count.zone_number_of_hits(7);
+        int n_hits_3, x_zone_offset_begin_3;
+        if ( yf < 0 ) {
+          n_hits_3 = n_hits_6;
+          x_zone_offset_begin_3 = x_zone_offset_begin_6;
+        } else {
+          n_hits_3 = n_hits_7;
+          x_zone_offset_begin_3 = x_zone_offset_begin_7;
+        }
         
-        //bool match_3 = false;
-         // float true_x_3;
-        // for ( const auto true_id : true_scifi_ids ) {
-        //   for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
-        //     const int hit_index = x_zone_offset_begin_3 + i_hit;
-        //     const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
-        //     if ( true_id == lhcbid ) {
-        //       res_x_3 = xf - scifi_hits.x0[hit_index];
-        //       true_x_3 = scifi_hits.x0[hit_index];
-        //       match_3 = true;
-        //       break;
-        //     }
-        //   }
-        //   if ( match_3 ) break;
-        // }
-        // if (!match_3) {
-        //   res_x_3 = -10000;
-        // }
-        // // check combinatorics within search window in layer 3
-        // const float max_dx_3 = 200;
-        // std::vector<int> candidates_x_3;
-        // for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
-        //   const int hit_index = x_zone_offset_begin_3 + i_hit;
-        //   const float x = scifi_hits.x0[hit_index];
-        //   if ( fabsf(x-xf) < max_dx_3 )
-        //     candidates_x_3.push_back(hit_index);
-        // }
-        // n_hits_in_window_3 = candidates_x_3.size();
-        // dx = true_x_3-true_x_0;
+        bool match_3 = false;
+         float true_x_3;
+        for ( const auto true_id : true_scifi_ids ) {
+          for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
+            const int hit_index = x_zone_offset_begin_3 + i_hit;
+            const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+            if ( true_id == lhcbid ) {
+              res_x_3 = xf - scifi_hits.x0[hit_index];
+              true_x_3 = scifi_hits.x0[hit_index];
+              match_3 = true;
+              break;
+            }
+          }
+          if ( match_3 ) break;
+        }
+        if (!match_3) {
+          res_x_3 = -10000;
+        }
+        // check combinatorics within search window in layer 3
+        const float max_dx_3 = 200;
+        std::vector<int> candidates_x_3;
+        for ( int i_hit = 0; i_hit < n_hits_3; ++i_hit ) { 
+          const int hit_index = x_zone_offset_begin_3 + i_hit;
+          const float x = scifi_hits.x0[hit_index];
+          if ( fabsf(x-xf) < max_dx_3 )
+            candidates_x_3.push_back(hit_index);
+        }
+        n_hits_in_window_3 = candidates_x_3.size();
+        dx = true_x_3-true_x_0;
 
-        // // check combinations of x hits from layer 0 and 3
-        // n_x_combinations = 0;
-        // for ( const auto index_0 : candidates_x_0 ) {
-        //   const float x_0 =  scifi_hits.x0[index_0];
-        //   for ( const auto index_3 : candidates_x_3 ) {
-        //     const float x_3 =  scifi_hits.x0[index_3];
-        //     if ( fabsf(x_0 - x_3 ) < 200 ) {
-        //       n_x_combinations++;
-        //     }
-        //   }
-        // }
-
+        // check combinations of x hits from layer 0 and 3
+        n_x_combinations = 0;
+        for ( const auto index_0 : candidates_x_0 ) {
+          const float x_0 =  scifi_hits.x0[index_0];
+          for ( const auto index_3 : candidates_x_3 ) {
+            const float x_3 =  scifi_hits.x0[index_3];
+            if ( fabsf(x_0 - x_3 ) < 200 ) {
+              n_x_combinations++;
+            }
+          }
+        }
+ 
         t_extrap->Fill();
         
       } // extrapolation worked

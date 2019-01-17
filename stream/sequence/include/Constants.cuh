@@ -58,8 +58,9 @@ struct Constants {
   PrUTMagnetTool* dev_ut_magnet_tool;
   
   // SciFi parametrization constants
-  SciFi::Parameters host_scifi_params;
-
+  SciFi::Parameters host_scifi_params_T1;
+  //SciFi::Parameters host_scifi_params_T3;
+  
   // Muon classification model constants
   int muon_catboost_n_features;
   int muon_catboost_n_trees;
