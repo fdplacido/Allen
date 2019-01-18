@@ -291,11 +291,9 @@ int run_momentum_forward_on_CPU(
 #endif
 
       // propagation to first layer of T1
-      float eloss = 2.f/3e5;
-      
       int ret = extrap(
-        UT_state_from_velo.x, UT_state_from_velo.y,
-        UT_state_from_velo.tx, UT_state_from_velo.ty,
+        UT_state.x, UT_state.y,
+        UT_state.tx, UT_state.ty,
         qop, scifi_params_T1,
         xf_t1, yf_t1, txf_t1, tyf_t1, der_xf_qop_t1);
       
@@ -357,11 +355,9 @@ int run_momentum_forward_on_CPU(
 
             // print out for Pierre
             if ( i_event < 100 ) 
-              output_pierre << qop << "\t" << UT_state_from_velo.x << "\t" << UT_state_from_velo.tx << "\t" << UT_state_from_velo.y << "\t" << UT_state_from_velo.ty << "\t" << UT_state_from_velo.z << "\t" << 1./p_true << "\t" << true_x_t1 << std::endl; 
-            
-
+              output_pierre << qop << "\t" << UT_state.x << "\t" << UT_state.tx << "\t" << UT_state.y << "\t" << UT_state.ty << "\t" << UT_state.z << "\t" << 1./p_true << "\t" << true_x_t1 << std::endl;             
             int ret_qop = update_qop_estimate(
-              UT_state_from_velo, qop,
+              UT_state, qop,
               true_x_t1, scifi_params_T1, 
               xf_t1, yf_t1, txf_t1, tyf_t1, der_xf_qop_t1, qop_update_t1);
             
@@ -443,8 +439,8 @@ int run_momentum_forward_on_CPU(
       
       // extrapolate to last layer of T3 (layer 11)
       ret = extrap(
-        UT_state_from_velo.x, UT_state_from_velo.y,
-        UT_state_from_velo.tx, UT_state_from_velo.ty,
+        UT_state.x, UT_state.y,
+        UT_state.tx, UT_state.ty,
         qop, scifi_params_T3,
         xf_t3, yf_t3, txf_t3, tyf_t3, der_xf_qop_t3);
       
@@ -502,7 +498,7 @@ int run_momentum_forward_on_CPU(
           // Update momentum estimate with true x hit position
           if ( match_t3 ) {
             int ret_qop = update_qop_estimate(
-              UT_state_from_velo, qop,
+              UT_state, qop,
               true_x_t3, scifi_params_T3, 
               xf_t3, yf_t3, txf_t3, tyf_t3, der_xf_qop_t3, qop_update_t3);
             
