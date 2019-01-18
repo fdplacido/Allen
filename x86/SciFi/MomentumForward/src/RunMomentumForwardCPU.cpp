@@ -78,6 +78,8 @@ int run_momentum_forward_on_CPU(
   int n_hits_in_window_0_t1 = 0, n_hits_in_window_0_t1_true_p = 0, n_hits_in_window_3_t1 = 0;
   int n_hits_in_zone_t1 = 0, n_hits_in_window_other_t1 = 0;
   float p_diff_before_update_t1, p_diff_after_update_t1, p_diff_before_after_t1;
+  float qop_diff_before_update_t1, qop_diff_after_update_t1, qop_diff_before_after_t1;
+
   float xf_t3, yf_t3, txf_t3, tyf_t3, der_xf_qop_t3, qop_update_t3;
   float res_x_0_t3, res_x_3_t3, dx_t3, x_extrap_t3, true_x_t3, res_x_other_t3;;
   int n_hits_in_window_0_t3 = 0, n_hits_in_window_0_t3_true_p = 0, n_hits_in_window_3_t3 = 0;
@@ -120,6 +122,9 @@ int run_momentum_forward_on_CPU(
   t_extrap_T1->Branch("p_diff_before_update", &p_diff_before_update_t1);
   t_extrap_T1->Branch("p_diff_after_update", &p_diff_after_update_t1);
   t_extrap_T1->Branch("p_diff_before_after", &p_diff_before_after_t1);
+  t_extrap_T1->Branch("qop_diff_before_update", &qop_diff_before_update_t1);
+  t_extrap_T1->Branch("qop_diff_after_update", &qop_diff_after_update_t1);
+  t_extrap_T1->Branch("qop_diff_before_after", &qop_diff_before_after_t1);
   t_extrap_T1->Branch("n_hits_in_window_0", &n_hits_in_window_0_t1);
   t_extrap_T1->Branch("n_hits_in_zone", &n_hits_in_zone_t1);
   t_extrap_T1->Branch("isLong", &isLong);
@@ -172,6 +177,9 @@ int run_momentum_forward_on_CPU(
   int n_extrap_T1 = 0;
   int n_extrap_T3 = 0;
   
+  ofstream output_pierre;
+  output_pierre.open("output_pierre.txt");
+
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
 
     // Velo consolidated types
@@ -346,6 +354,12 @@ int run_momentum_forward_on_CPU(
           // caution: xf, yf etc. are changed in the qop update step
           // -> they are not the same as above when checking the resolution (res_x_0_t1)
           if ( match_t1 ) {
+
+            // print out for Pierre
+            if ( i_event < 100 ) 
+              output_pierre << qop << "\t" << UT_state_from_velo.x << "\t" << UT_state_from_velo.tx << "\t" << UT_state_from_velo.y << "\t" << UT_state_from_velo.ty << "\t" << UT_state_from_velo.z << "\t" << 1./p_true << "\t" << true_x_t1 << std::endl; 
+            
+
             int ret_qop = update_qop_estimate(
               UT_state_from_velo, qop,
               true_x_t1, scifi_params_T1, 
@@ -356,6 +370,9 @@ int run_momentum_forward_on_CPU(
               p_diff_after_update_t1 = std::abs(p_true) - std::abs( 1.f/qop_update_t1 );
               p_diff_before_update_t1 = std::abs(p_true) - std::abs( 1.f/qop );
               p_diff_before_after_t1 = std::abs( 1.f/qop ) - std::abs( 1.f/qop_update_t1 );
+              qop_diff_after_update_t1 = 1./p_true - qop_update_t1;
+              qop_diff_before_update_t1 = 1./p_true - qop;
+              qop_diff_before_after_t1 = qop - qop_update_t1;
             }
 
             // Distance in x to correct hit in other x layer of station
@@ -588,6 +605,8 @@ int run_momentum_forward_on_CPU(
 
   info_cout << "Extrapolation to T1 worked: " << float(n_extrap_T1) / n_veloUT_tracks << std::endl;
   info_cout << "Extrapolation to T3 worked: " << float(n_extrap_T3) / n_veloUT_tracks << std::endl;
+
+  output_pierre.close();
 
   return 0;
 }
