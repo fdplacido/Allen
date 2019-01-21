@@ -191,7 +191,7 @@ int update_qop_estimate(const MiniState& UT_state, const float qop, const float 
   float txf = txf_ini;
   float tyf = tyf_ini;
   float der_xf_qop = der_xf_qop_ini;
-  debug_cout << "starting iterations for new track" << std::endl;
+  //debug_cout << "starting iterations for new track" << std::endl;
   for ( int i = 0; i < MAXITER; ++i ) {
     if ( i > 0 ) {
       int ret = extrap(
@@ -202,8 +202,8 @@ int update_qop_estimate(const MiniState& UT_state, const float qop, const float 
       if ( !ret ) return 0;
     }
     qop_update = r_prev + (xhit - xf) / der_xf_qop;
-    debug_cout << "at iteration " << i << ": r_prev = " << std::setprecision(6) << r_prev << ", current r = " << qop_update << ", r difference = " << qop_update-r_prev << ", xf = " << xf << ", xhit = " << xhit << std::endl;
-    debug_cout << "der_xf_qop = " << der_xf_qop << std::endl;
+    //debug_cout << "at iteration " << i << ": r_prev = " << std::setprecision(6) << r_prev << ", current r = " << qop_update << ", r difference = " << qop_update-r_prev << ", xf = " << xf << ", xhit = " << xhit << std::endl;
+    //debug_cout << "der_xf_qop = " << der_xf_qop << std::endl;
     if ( std::abs(xf-xhit) < XCONVERGENCE )
       return 1;
     r_prev = qop_update;
