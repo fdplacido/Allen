@@ -46,7 +46,8 @@ int run_momentum_forward_on_CPU(
 ) {
 
   // initialize parameters
-  char name_coef_T1[200] = "../input/test_UT_T1.tab";
+  //char name_coef_T1[200] = "../input/test_UT_T1.tab";
+  char name_coef_T1[200] = "../input/UT_T1_v0r5.tab";
   debug_cout << "Reading coefs for extrapolation to T1: " << name_coef_T1 << std::endl;
   SciFi::Parameters scifi_params_T1 = SciFi::Parameters(name_coef_T1);
   
@@ -72,7 +73,7 @@ int run_momentum_forward_on_CPU(
   int n_tracks;
   float state_x, state_y, state_z, state_tx, state_ty;
   float xf_t1, yf_t1, txf_t1, tyf_t1, der_xf_qop_t1, qop_update_t1;
-  float res_x_0_t1, res_x_3_t1, dx_t1, x_extrap_t1, true_x_t1, res_x_other_t1;
+  float res_x_0_t1, res_x_3_t1, dx_t1, x_extrap_t1, true_x_t1, res_x_other_t1, true_z_t1;
   float UT_x, UT_y, UT_z, UT_tx, UT_ty, ut_qop;
   float velo_x_extrap, velo_tx;
   int n_hits_in_window_0_t1 = 0, n_hits_in_window_0_t1_true_p = 0, n_hits_in_window_3_t1 = 0;
@@ -118,6 +119,7 @@ int run_momentum_forward_on_CPU(
   t_extrap_T1->Branch("res_x_0", &res_x_0_t1);
   t_extrap_T1->Branch("res_x_other", &res_x_other_t1);
   t_extrap_T1->Branch("true_x", &true_x_t1);
+  t_extrap_T1->Branch("true_z", &true_z_t1);
   t_extrap_T1->Branch("x_extrap", &x_extrap_t1);
   t_extrap_T1->Branch("dx", &dx_t1);
   t_extrap_T1->Branch("qop_update", &qop_update_t1);
@@ -183,9 +185,6 @@ int run_momentum_forward_on_CPU(
   int n_extrap_T1 = 0;
   int n_extrap_T3 = 0;
   
-  ofstream output_pierre;
-  output_pierre.open("output_pierre.txt");
-
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
 
     // Velo consolidated types
@@ -346,6 +345,7 @@ int run_momentum_forward_on_CPU(
               if ( true_id == lhcbid ) {
                 res_x_0_t1 = xf_t1 - scifi_hits.x0[hit_index];
                 true_x_t1 = scifi_hits.x0[hit_index];
+                true_z_t1 = scifi_hits.z0[hit_index];
                 x_extrap_t1 = xf_t1 + der_xf_qop_t1 * (xf_t1 - true_x_t1);
                 match_t1 = true;
                 break;
@@ -359,9 +359,6 @@ int run_momentum_forward_on_CPU(
           // -> they are not the same as above when checking the resolution (res_x_0_t1)
           if ( match_t1 ) {
 
-            // print out for Pierre
-            if ( i_event < 100 ) 
-              output_pierre << qop << "\t" << UT_state.x << "\t" << UT_state.tx << "\t" << UT_state.y << "\t" << UT_state.ty << "\t" << UT_state.z << "\t" << 1./p_true << "\t" << true_x_t1 << std::endl;             
             int ret_qop = update_qop_estimate(
               UT_state, qop,
               true_x_t1, scifi_params_T1, 
@@ -612,8 +609,6 @@ int run_momentum_forward_on_CPU(
 
   info_cout << "Extrapolation to T1 worked: " << float(n_extrap_T1) / n_veloUT_tracks << std::endl;
   info_cout << "Extrapolation to T3 worked: " << float(n_extrap_T3) / n_veloUT_tracks << std::endl;
-
-  output_pierre.close();
 
   return 0;
 }

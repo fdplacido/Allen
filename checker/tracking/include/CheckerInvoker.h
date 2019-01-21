@@ -76,27 +76,20 @@ struct CheckerInvoker {
             // Find this MCP
             for ( const auto mcp : mc_event.scifi_mcps ) {
               if ( mcp.key == key ) {
-                // Find out charge of this MCP
-                if ( std::abs(mcp.pid) != 11 
-                     && std::abs(mcp.pid) != 13 
-                     && std::abs(mcp.pid) != 211 
-                     && std::abs(mcp.pid) != 2212 
-                     && std::abs(mcp.pid) != 321 ) {
-                  //debug_cout << "PID = " << mcp.pid << std::endl;
-                  n_other_pids++;
-                }
-                else
-                  n_pids++;
-                // e- (11), mu- (13), tau- (15): positive PID
+                // only use pi (211), K (321), mu (13) for studies
+                if ( std::abs(mcp.pid) != 13 && std::abs(mcp.pid) != 211 && std::abs(mcp.pid) != 321 )
+                  break;
+                // mu- (13): positive PID
                 float charge;
-                if ( std::abs(mcp.pid ) == 11 || std::abs(mcp.pid) == 13 || std::abs(mcp.pid) == 15 ) { 
+                if ( std::abs(mcp.pid) == 13 ) { 
                   charge = -1. * std::copysign(1., mcp.pid);
                 }
-                // p, pi+, K+: positive PID
+                // pi+, K+: positive PID
                 else
                   charge = std::copysign(1., mcp.pid);
                 // Save momentum and charge of this MCP
                 p = mcp.p * charge;
+                debug_cout << "Adding particle with PID = " << mcp.pid << " and charge " << charge << std::endl;
                 // Find SciFi IDs of this MCP
                 if ( mcp.isLong) { // found matched long MCP
                   for ( const auto id : mcp.hits ) {
