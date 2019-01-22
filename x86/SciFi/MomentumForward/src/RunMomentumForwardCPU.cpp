@@ -81,7 +81,7 @@ int run_momentum_forward_on_CPU(
   int n_hits_in_zone_t1 = 0, n_hits_in_window_other_t1 = 0, n_hits_in_window_other_t1_tx_cut = 0;
   float p_diff_before_update_t1, p_diff_after_update_t1, p_diff_before_after_t1, p_resolution_after_update_t1;
   float qop_diff_before_update_t1, qop_diff_after_update_t1, qop_diff_before_after_t1, qop_resolution_after_update_t1;
-  float tx_x_hits_t1;
+  float tx_x_hits_t1, res_x_u_t1, res_x_v_t1;
 
   float xf_t3, yf_t3, txf_t3, tyf_t3, der_xf_qop_t3, qop_update_t3;
   float res_x_0_t3, res_x_3_t3, dx_t3, x_extrap_t3, true_x_t3, res_x_other_t3;;
@@ -93,7 +93,7 @@ int run_momentum_forward_on_CPU(
 
   bool t1_extrap_worked, t3_extrap_worked, isLong;
   float p_true;
-  bool match_t1, match_t3, match_t1_other, match_t3_other;
+  bool match_t1, match_t3, match_t1_other, match_t3_other, match_t1_u, match_t1_v;
 
   t_Forward_tracks->Branch("qop", &qop);
   t_Forward_tracks->Branch("state_x", &state_x);
@@ -140,6 +140,10 @@ int run_momentum_forward_on_CPU(
   t_extrap_T1->Branch("match_other", &match_t1_other);
   t_extrap_T1->Branch("ut_qop", &ut_qop);
   t_extrap_T1->Branch("tx_x_hits", &tx_x_hits_t1);
+  t_extrap_T1->Branch("res_x_u", &res_x_u_t1);
+  t_extrap_T1->Branch("match_u", &match_t1_u);
+  t_extrap_T1->Branch("res_x_v", &res_x_v_t1);
+  t_extrap_T1->Branch("match_v", &match_t1_v);
 
   t_extrap_T3->Branch("xf", &xf_t3);
   t_extrap_T3->Branch("yf", &yf_t3);
@@ -166,7 +170,7 @@ int run_momentum_forward_on_CPU(
   t_extrap_T3->Branch("tx_x_hits", &tx_x_hits_t3);
   t_extrap_T3->Branch("match", &match_t3);
   t_extrap_T3->Branch("match_other", &match_t3_other);
-
+  
   t_ut_tracks->Branch("ut_x", &UT_x);
   t_ut_tracks->Branch("ut_y", &UT_y);
   t_ut_tracks->Branch("ut_z", &UT_z);
@@ -313,12 +317,21 @@ int run_momentum_forward_on_CPU(
         n_extrap_T1++;
         t1_extrap_worked = true;
         
+        // access hits in first layer of T1, layer 0 = zone 0 (y < 0) + zone 1 (y > 0)
         int x_zone_offset, n_hits;
         get_offset_and_n_hits_for_layer(0, scifi_hit_count, yf_t1, n_hits, x_zone_offset);
 
         // access hits in last layer of T1, layer 3 = zone 6 (y < 0) + zone 7 (y > 0)
         int n_hits_other, x_zone_offset_other;
         get_offset_and_n_hits_for_layer(6, scifi_hit_count, yf_t1, n_hits_other, x_zone_offset_other);
+
+        // access hits in u-layer of T1, layer 1 = zone 2 (y < 0) + zone 3 (y > 0)
+        int n_hits_u, x_zone_offset_u;
+        get_offset_and_n_hits_for_layer(2, scifi_hit_count, yf_t1, n_hits_u, x_zone_offset_u);
+
+        // access hits in v-layer of T1, layer 1 = zone 4 (y < 0) + zone 5 (y > 0)
+        int n_hits_v, x_zone_offset_v;
+        get_offset_and_n_hits_for_layer(4, scifi_hit_count, yf_t1, n_hits_v, x_zone_offset_v);
         
         // find x hit(s) in layer 0 that 
         // were truth matched to the veloUT track
@@ -391,9 +404,37 @@ int run_momentum_forward_on_CPU(
             }
            
             // Check y-resolution in u-layer using x(y=0) values
+            match_t1_u = false;
+            for ( const auto true_id : true_scifi_ids ) {
+              for ( int i_hit = 0; i_hit < n_hits_u; ++i_hit ) { 
+                const int hit_index = x_zone_offset_u + i_hit;
+                const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+                if ( true_id == lhcbid ) {
+                  float x_hit = scifi_hits.x0[hit_index] + yf_t1 * scifi_hits.dxdy(hit_index);
+                  res_x_u_t1 = x_hit - xf_t1;
+                  match_t1_u = true;
+                  break;
+                }
+              }
+              if ( match_t1_u ) break;
+            }
             
-
- 
+            // Check y-resolution in v-layer using x(y=0) values
+            match_t1_v = false;
+            for ( const auto true_id : true_scifi_ids ) {
+              for ( int i_hit = 0; i_hit < n_hits_v; ++i_hit ) { 
+                const int hit_index = x_zone_offset_v + i_hit;
+                const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+                if ( true_id == lhcbid ) {
+                  float x_hit = scifi_hits.x0[hit_index] + yf_t1 * scifi_hits.dxdy(hit_index);
+                  res_x_v_t1 = x_hit - xf_t1;
+                  match_t1_v = true;
+                  break;
+                }
+              }
+              if ( match_t1_v ) break;
+            }
+            
           } // match in first layer of T1
         
         } // # of true SciFi IDs > 0
