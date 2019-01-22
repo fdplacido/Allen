@@ -47,7 +47,7 @@ int run_momentum_forward_on_CPU(
 
   // initialize parameters
   //char name_coef_T1[200] = "../input/test_UT_T1.tab";
-  char name_coef_T1[200] = "../input/UT_T1_v0r5.tab";
+  char name_coef_T1[200] = "../input/UT_T1_tilt_new.tab";
   debug_cout << "Reading coefs for extrapolation to T1: " << name_coef_T1 << std::endl;
   SciFi::Parameters scifi_params_T1 = SciFi::Parameters(name_coef_T1);
   
@@ -80,6 +80,7 @@ int run_momentum_forward_on_CPU(
   int n_hits_in_zone_t1 = 0, n_hits_in_window_other_t1 = 0;
   float p_diff_before_update_t1, p_diff_after_update_t1, p_diff_before_after_t1, p_resolution_after_update_t1;
   float qop_diff_before_update_t1, qop_diff_after_update_t1, qop_diff_before_after_t1, qop_resolution_after_update_t1;
+  float tx_x_hits_t1;
 
   float xf_t3, yf_t3, txf_t3, tyf_t3, der_xf_qop_t3, qop_update_t3;
   float res_x_0_t3, res_x_3_t3, dx_t3, x_extrap_t3, true_x_t3, res_x_other_t3;;
@@ -87,6 +88,7 @@ int run_momentum_forward_on_CPU(
   int n_hits_in_zone_t3 = 0, n_hits_in_window_other_t3 = 0;
   float p_diff_before_update_t3, p_diff_after_update_t3, p_resolution_after_update_t3;
   float qop_diff_before_update_t3, qop_diff_after_update_t3, qop_diff_before_after_t3, qop_resolution_after_update_t3;
+  float tx_x_hits_t3;
 
   bool t1_extrap_worked, t3_extrap_worked, isLong;
   float p_true;
@@ -136,6 +138,7 @@ int run_momentum_forward_on_CPU(
   t_extrap_T1->Branch("match", &match_t1);
   t_extrap_T1->Branch("match_other", &match_t1_other);
   t_extrap_T1->Branch("ut_qop", &ut_qop);
+  t_extrap_T1->Branch("tx_x_hits", &tx_x_hits_t1);
 
   t_extrap_T3->Branch("xf", &xf_t3);
   t_extrap_T3->Branch("yf", &yf_t3);
@@ -159,7 +162,7 @@ int run_momentum_forward_on_CPU(
   t_extrap_T3->Branch("isLong", &isLong);
   t_extrap_T3->Branch("p_true", &p_true);
   t_extrap_T3->Branch("ut_qop", &ut_qop);
-  
+  t_extrap_T3->Branch("tx_x_hits", &tx_x_hits_t3);
   t_extrap_T3->Branch("match", &match_t3);
   t_extrap_T3->Branch("match_other", &match_t3_other);
 
@@ -269,9 +272,11 @@ int run_momentum_forward_on_CPU(
       state_UT.y = y_at_z(velo_state, ut_z);
       
       // extrapolate state to last UT plane (needed as input for parametrization)
-      const int z_last_UT_plane = 2642.f;
+      const int z_last_UT_plane = 2642.;
       MiniState UT_state_from_velo = state_at_z(velo_state, z_last_UT_plane);
       MiniState UT_state = state_at_z(state_UT, z_last_UT_plane);
+      
+      //debug_cout << "ut_z = " << ut_z << std::endl;
       
       t1_extrap_worked = false;
       t3_extrap_worked = false;
@@ -393,8 +398,10 @@ int run_momentum_forward_on_CPU(
                   float true_x_t1_other = scifi_hits.x0[hit_index];
                   if ( fabsf(true_x_t1-true_x_t1_other) < 20.f - slope1 * qop 
                        && fabsf(true_x_t1-true_x_t1_other) > -20.f - slope2 * qop) {
-                    res_x_other_t1 = true_x_t1 - scifi_hits.x0[hit_index];
+                    float true_x_t1_other = scifi_hits.x0[hit_index];
+                    res_x_other_t1 = true_x_t1 - true_x_t1_other;
                     match_t1_other = true;
+                    tx_x_hits_t1 = (true_x_t1 - true_x_t1_other) / 210.; // dz of x-layers within one station = 210 mm
                     break;
                   }
                 }
@@ -535,6 +542,7 @@ int run_momentum_forward_on_CPU(
                   if ( fabsf(true_x_t3-true_x_t3_other) < 20.f + slope1 * qop 
                        && fabsf(true_x_t3-true_x_t3_other) > -20.f + slope2 * qop) {
                     res_x_other_t3 = true_x_t3 - scifi_hits.x0[hit_index];
+                    tx_x_hits_t3 = (true_x_t3 - true_x_t3_other) / 210.; // dz of x-layers within one station = 210 mm
                     match_t3_other = true;
                     break;
                   }

@@ -89,7 +89,7 @@ struct CheckerInvoker {
                   charge = std::copysign(1., mcp.pid);
                 // Save momentum and charge of this MCP
                 p = mcp.p * charge;
-                debug_cout << "Adding particle with PID = " << mcp.pid << " and charge " << charge << std::endl;
+                //debug_cout << "Adding particle with PID = " << mcp.pid << " and charge " << charge << std::endl;
                 // Find SciFi IDs of this MCP
                 if ( mcp.isLong) { // found matched long MCP
                   for ( const auto id : mcp.hits ) {
