@@ -20,6 +20,9 @@
 #include "SciFiDefinitions.cuh"
 #include "SciFiParametrization.h"
 
+#include "MomentumForwardUtils.h"
+#include "MomentumForwardConstants.h"
+
 MiniState state_at_z(const MiniState state, const float z);
 
 int run_momentum_forward_on_CPU (

@@ -1,5 +1,4 @@
 #include "RunMomentumForwardCPU.h"
-#include "Utils.h"
 
 #ifdef WITH_ROOT
 #include "TH1D.h"
@@ -78,7 +77,7 @@ int run_momentum_forward_on_CPU(
   float UT_x, UT_y, UT_z, UT_tx, UT_ty, ut_qop;
   float velo_x_extrap, velo_tx;
   int n_hits_in_window_0_t1 = 0, n_hits_in_window_0_t1_true_p = 0, n_hits_in_window_3_t1 = 0;
-  int n_hits_in_zone_t1 = 0, n_hits_in_window_other_t1 = 0, n_hits_in_window_other_t1_tx_cut = 0;
+  int n_hits_in_zone_t1 = 0, n_hits_in_window_other_t1 = 0, n_hits_in_window_other_t1_tx = 0;
   float p_diff_before_update_t1, p_diff_after_update_t1, p_diff_before_after_t1, p_resolution_after_update_t1;
   float qop_diff_before_update_t1, qop_diff_after_update_t1, qop_diff_before_after_t1, qop_resolution_after_update_t1;
   float tx_x_hits_t1, res_x_u_t1, res_x_v_t1;
@@ -185,7 +184,7 @@ int run_momentum_forward_on_CPU(
   t_ut_tracks->Branch("p_true", &p_true);
 
   t_other_x_layer_t1->Branch("n_hits_in_window_other", &n_hits_in_window_other_t1);
-  t_other_x_layer_t1->Branch("n_hits_in_window_other_tx_cut", &n_hits_in_window_other_t1_tx_cut);
+  t_other_x_layer_t1->Branch("n_hits_in_window_other_tx", &n_hits_in_window_other_t1_tx);
 
   t_other_x_layer_t3->Branch("n_hits_in_window_other", &n_hits_in_window_other_t3);
 #endif
@@ -194,6 +193,9 @@ int run_momentum_forward_on_CPU(
   int n_extrap_T1 = 0;
   int n_extrap_T3 = 0;
   
+  ofstream output_pierre;
+  output_pierre.open("output_pierre.txt"); 
+
   for ( uint i_event = 0; i_event < number_of_events; ++i_event ) {
 
     // Velo consolidated types
@@ -359,6 +361,10 @@ int run_momentum_forward_on_CPU(
           // -> they are not the same as above when checking the resolution (res_x_0_t1)
           if ( match_t1 ) {
 
+            if ( i_event < 100 ) {
+              output_pierre << qop << "\t" << UT_x << "\t" << UT_tx << "\t" << UT_y <<  "\t" << UT_ty << "\t" << UT_z  << "\t" << 1./p_true << "\t" << true_x_t1 << endl;
+            }
+
             int ret_qop = update_qop_estimate(
               UT_state, qop,
               true_x_t1, scifi_params_T1, 
@@ -375,29 +381,18 @@ int run_momentum_forward_on_CPU(
               qop_resolution_after_update_t1 = (1./p_true - qop_update_t1) * p_true;
             }
 
-            // Distance in x to correct hit in other x layer of station
+            // Distance in x to true hit in other x layer of station
             match_t1_other = false;
-            float slope1, slope2;
-            if ( qop < 0 ) {
-              slope1 = 0.3e6;
-              slope2 = 0.2e6;
-            } else {
-              slope1 = -0.2e6;
-              slope2 = -0.3e6;
-            }
             for ( const auto true_id : true_scifi_ids ) {
               for ( int i_hit = 0; i_hit < n_hits_other; ++i_hit ) { 
                 const int hit_index = x_zone_offset_other + i_hit;
                 const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
                 if ( true_id == lhcbid ) {
                   float true_x_t1_other = scifi_hits.x0[hit_index];
-                  if ( fabsf(true_x_t1-true_x_t1_other) < 20.f - slope1 * qop 
-                       && fabsf(true_x_t1-true_x_t1_other) > -20.f - slope2 * qop) {
-                    res_x_other_t1 = true_x_t1 - true_x_t1_other;
-                    match_t1_other = true;
-                    tx_x_hits_t1 = (true_x_t1_other - true_x_t1) / 210.; // dz of x-layers within one station = 210 mm
-                    break;
-                  }
+                  res_x_other_t1 = true_x_t1 - true_x_t1_other;
+                  match_t1_other = true;
+                  tx_x_hits_t1 = (true_x_t1_other - true_x_t1) / SciFi::MomentumForward::dz_x_layers; // dz of x-layers within one station = 210 mm
+                  break;
                 }
               }
               if ( match_t1_other ) break;
@@ -442,32 +437,32 @@ int run_momentum_forward_on_CPU(
         // check combinatorics within search window in layer 0
         float slope1, slope2;
         if ( qop < 0 ) {
-          slope1 = 0.3e6;
-          slope2 = 0.2e6;
+          slope1 = SciFi::MomentumForward::x_diff_layer_qop_slope_a;
+          slope2 = SciFi::MomentumForward::x_diff_layer_qop_slope_b;
         } else {
-          slope1 = -0.2e6;
-          slope2 = -0.3e6;
+          slope1 = -1.f * SciFi::MomentumForward::x_diff_layer_qop_slope_b;
+          slope2 = -1.f * SciFi::MomentumForward::x_diff_layer_qop_slope_a;
         }
                 
         for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) { 
           const int hit_index = x_zone_offset + i_hit;
           const float x = scifi_hits.x0[hit_index];
-          if ( fabsf(x-xf_t1) < 20 + 1.e6 * fabsf(qop) ) {
+          if ( fabsf(x-xf_t1) < SciFi::MomentumForward::dx_extrap_qop_offset_T1 + SciFi::MomentumForward::dx_extrap_qop_slope_T1 * fabsf(qop) ) {
             n_hits_in_window_0_t1++;
             // check combinatorics in other x-layer of last station
             n_hits_in_window_other_t1 = 0;
-            n_hits_in_window_other_t1_tx_cut = 0;
+            n_hits_in_window_other_t1_tx = 0;
             for ( int i_hit_other = 0; i_hit_other < n_hits_other; ++i_hit_other ) { 
               const int hit_index_other = x_zone_offset_other + i_hit_other;
               const float x_other = scifi_hits.x0[hit_index_other];
-              if ( fabsf(x-x_other) < 20.f - slope1 * qop 
-                   && fabsf(x-x_other) > -20.f - slope2 * qop) {
+              if ( fabsf(x-x_other) < SciFi::MomentumForward::x_diff_layer_qop_offset - slope1 * qop 
+                   && fabsf(x-x_other) > -1.f * SciFi::MomentumForward::x_diff_layer_qop_offset - slope2 * qop) {
                 n_hits_in_window_other_t1++;
                 
                 // cut on tx 
-                float tx_hits = (x_other-x)/210.;
-                if ( std::abs(tx_hits - txf_t1) < 0.05 )
-                  n_hits_in_window_other_t1_tx_cut++;
+                float tx_hits = (x_other-x)/SciFi::MomentumForward::dz_x_layers;
+                if ( std::abs(tx_hits - txf_t1) < SciFi::MomentumForward::max_tx_diff)
+                  n_hits_in_window_other_t1_tx++;
               }
             }
             t_other_x_layer_t1->Fill();
@@ -537,27 +532,16 @@ int run_momentum_forward_on_CPU(
             
             // Distance in x to correct hit in other x layer of station
             match_t3_other = false;
-            float slope1, slope2;
-            if ( qop < 0 ) {
-              slope1 = -0.2e6;
-              slope2 = -0.3e6;
-            } else {
-              slope1 = 0.3e6;
-              slope2 = 0.2e6;
-            }
             for ( const auto true_id : true_scifi_ids ) {
               for ( int i_hit = 0; i_hit < n_hits_other; ++i_hit ) { 
                 const int hit_index = x_zone_offset_other + i_hit;
                 const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
                 if ( true_id == lhcbid ) {
                   float true_x_t3_other = scifi_hits.x0[hit_index];
-                  if ( fabsf(true_x_t3-true_x_t3_other) < 20.f + slope1 * qop 
-                       && fabsf(true_x_t3-true_x_t3_other) > -20.f + slope2 * qop) {
-                    res_x_other_t3 = true_x_t3 - true_x_t3_other;
-                    tx_x_hits_t3 = (true_x_t3_other - true_x_t3) / 210.; // dz of x-layers within one station = 210 mm
-                    match_t3_other = true;
-                    break;
-                  }
+                  res_x_other_t3 = true_x_t3 - true_x_t3_other;
+                  tx_x_hits_t3 = (true_x_t3_other - true_x_t3) / SciFi::MomentumForward::dz_x_layers; // dz of x-layers within one station = 210 mm
+                  match_t3_other = true;
+                  break;
                 }
               }
               if ( match_t3_other ) break;
@@ -569,24 +553,24 @@ int run_momentum_forward_on_CPU(
         // check combinatorics within search window in layer 11
         float slope1, slope2;
         if ( qop < 0 ) {
-          slope1 = -0.2e6;
-          slope2 = -0.3e6;
+          slope1 = -1.f * SciFi::MomentumForward::x_diff_layer_qop_slope_b;
+          slope2 = -1.f * SciFi::MomentumForward::x_diff_layer_qop_slope_a;
         } else {
-          slope1 = 0.3e6;
-          slope2 = 0.2e6;
+          slope1 = SciFi::MomentumForward::x_diff_layer_qop_slope_a;
+          slope2 = SciFi::MomentumForward::x_diff_layer_qop_slope_b;
         }
         for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) { 
           const int hit_index = x_zone_offset + i_hit;
           const float x = scifi_hits.x0[hit_index];
-          if ( fabsf(x-xf_t3) < 40 + 1.5e6 * fabsf(qop) ) {
+          if ( fabsf(x-xf_t3) < SciFi::MomentumForward::dx_extrap_qop_offset_T3 + SciFi::MomentumForward::dx_extrap_qop_slope_T3 * fabsf(qop) ) {
             n_hits_in_window_0_t3++;
             // check combinatorics in other x-layer of last station
             n_hits_in_window_other_t3 = 0;
             for ( int i_hit_other = 0; i_hit_other < n_hits_other; ++i_hit_other ) { 
               const int hit_index_other = x_zone_offset_other + i_hit_other;
               const float x_other = scifi_hits.x0[hit_index_other];
-              if ( fabsf(x-x_other) < 20.f + slope1 * qop 
-                   && fabsf(x-x_other) > -20.f + slope2 * qop) {
+              if ( fabsf(x-x_other) < SciFi::MomentumForward::x_diff_layer_qop_offset + slope1 * qop 
+                   && fabsf(x-x_other) > -1.f * SciFi::MomentumForward::x_diff_layer_qop_offset + slope2 * qop) {
                 n_hits_in_window_other_t3++;
               }
             }
@@ -629,6 +613,8 @@ int run_momentum_forward_on_CPU(
 
   info_cout << "Extrapolation to T1 worked: " << float(n_extrap_T1) / n_veloUT_tracks << std::endl;
   info_cout << "Extrapolation to T3 worked: " << float(n_extrap_T3) / n_veloUT_tracks << std::endl;
+
+  output_pierre.close();
 
   return 0;
 }
