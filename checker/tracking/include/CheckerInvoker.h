@@ -55,7 +55,7 @@ struct CheckerInvoker {
     if (is_mc_folder_populated) {
       T trackChecker {};
 #ifdef WITH_ROOT
-      trackChecker.histos.initHistos(trackChecker.histo_categories());
+      trackChecker.histos.initHistos(trackChecker.histo_categories() );
 #endif
       int n_other_pids = 0;
       int n_pids = 0;
