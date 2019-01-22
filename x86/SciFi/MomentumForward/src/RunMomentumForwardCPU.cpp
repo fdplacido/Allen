@@ -47,7 +47,7 @@ int run_momentum_forward_on_CPU(
 
   // initialize parameters
   //char name_coef_T1[200] = "../input/test_UT_T1.tab";
-  char name_coef_T1[200] = "../input/UT_T1_tilt_new.tab";
+  char name_coef_T1[200] = "../input/UT_T1_shift_50_tilt_new.tab";
   debug_cout << "Reading coefs for extrapolation to T1: " << name_coef_T1 << std::endl;
   SciFi::Parameters scifi_params_T1 = SciFi::Parameters(name_coef_T1);
   

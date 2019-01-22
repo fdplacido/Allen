@@ -33,25 +33,25 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
     p_events);
 
   // Run MomentumForward on x86
-  // run_momentum_forward_on_CPU(
-  //   host_buffers.scifi_tracks_events.data(),
-  //   host_buffers.host_atomics_scifi,
-  //   host_buffers.host_scifi_hits.data(),
-  //   host_buffers.host_scifi_hit_count.data(),
-  //   constants.host_scifi_geometry,
-  //   constants.host_inv_clus_res, 
-  //   host_buffers.host_atomics_velo,
-  //   host_buffers.host_velo_track_hit_number,
-  //   host_buffers.host_velo_states,
-  //   host_buffers.host_atomics_ut,
-  //   host_buffers.host_ut_track_hit_number,
-  //   host_buffers.host_ut_qop,
-  //   host_buffers.host_ut_x,
-  //   host_buffers.host_ut_tx,
-  //   host_buffers.host_ut_z,
-  //   host_buffers.host_ut_track_velo_indices,
-  //   host_buffers.scifi_ids_ut_tracks,
-  //   p_events,
-  //   host_buffers.host_number_of_selected_events[0]);
+  run_momentum_forward_on_CPU(
+    host_buffers.scifi_tracks_events.data(),
+    host_buffers.host_atomics_scifi,
+    host_buffers.host_scifi_hits.data(),
+    host_buffers.host_scifi_hit_count.data(),
+    constants.host_scifi_geometry,
+    constants.host_inv_clus_res, 
+    host_buffers.host_atomics_velo,
+    host_buffers.host_velo_track_hit_number,
+    host_buffers.host_velo_states,
+    host_buffers.host_atomics_ut,
+    host_buffers.host_ut_track_hit_number,
+    host_buffers.host_ut_qop,
+    host_buffers.host_ut_x,
+    host_buffers.host_ut_tx,
+    host_buffers.host_ut_z,
+    host_buffers.host_ut_track_velo_indices,
+    host_buffers.scifi_ids_ut_tracks,
+    p_events,
+    host_buffers.host_number_of_selected_events[0]);
   
 }
