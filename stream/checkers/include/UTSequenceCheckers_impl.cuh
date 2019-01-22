@@ -1,5 +1,5 @@
 #include "VeloUT.cuh"
-#include "RunMomentumForwardCPU.h"
+#include "MomentumForwardStudies.h"
 
 /**
  * @brief Specialization for any Velo reconstruction algorithm invoking
@@ -33,7 +33,7 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
     p_events);
 
   // Run MomentumForward on x86
-  run_momentum_forward_on_CPU(
+  momentum_forward_studies(
     host_buffers.scifi_tracks_events.data(),
     host_buffers.host_atomics_scifi,
     host_buffers.host_scifi_hits.data(),

@@ -34,5 +34,7 @@ namespace SciFi {
     // cut on x difference between x- and u-/v-layers
     constexpr float dx_x_uv_layers = 200.f * Gaudi::Units::mm;
     constexpr float dx_x_uv_layers_slope = 2.f * Gaudi::Units::mm;
+
+    constexpr float z_last_UT_plane = 2642.f;
   }
 }

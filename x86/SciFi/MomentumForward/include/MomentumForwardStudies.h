@@ -23,7 +23,9 @@
 #include "MomentumForwardUtils.h"
 #include "MomentumForwardConstants.h"
 
-int run_momentum_forward_CPU (
+MiniState state_at_z(const MiniState state, const float z);
+
+int momentum_forward_studies (
   SciFi::TrackHits* host_scifi_tracks_events,
   int* host_scifi_n_tracks,
   const uint* host_scifi_hits,
@@ -40,6 +42,8 @@ int run_momentum_forward_CPU (
   const float* host_ut_tx,
   const float* host_ut_z,
   const uint* host_ut_track_velo_indices,
+  const std::vector< std::vector< std::vector< uint32_t > > > scifi_ids_ut_tracks,
+  const std::vector< std::vector< float > > p_events,
   const uint number_of_events);
 
-CPU_ALGORITHM(run_momentum_forward_CPU, cpu_scifi_momentum_forward_t)
+

@@ -17,3 +17,7 @@ void get_offset_and_n_hits_for_layer(
   const float y, 
   int& n_hits, 
   int& zone_offset);
+
+MiniState state_at_z(const MiniState state, const float z);
+
+float y_at_z(const MiniState state, const float z);
