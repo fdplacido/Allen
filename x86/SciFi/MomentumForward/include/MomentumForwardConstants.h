@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SystemOfUnits.h"
+#include "PrForwardConstants.cuh"
 
 namespace SciFi {
   namespace MomentumForward {
@@ -46,5 +47,22 @@ namespace SciFi {
     constexpr float dx_x_T2_T3_slope = 6.e6;
 
     constexpr float z_last_UT_plane = 2642.f;
+
+    // combinatorics cut-offs, to be tuned!!
+    // max # of quadruplets per veloUT input track
+    constexpr int max_quadruplets = 100; 
+
+    struct Track {
+      int hit_indices[SciFi::Tracking::max_scifi_hits];
+      float qop;
+      int hitsNum = 0;
+      float tx;
+
+      __host__  __device__ void addHit( int hit ) {
+        assert( hitsNum < SciFi::Tracking::max_scifi_hits - 1 );
+        hit_indices[hitsNum++] = hit;
+      }
+    };
+    
   }
 }
