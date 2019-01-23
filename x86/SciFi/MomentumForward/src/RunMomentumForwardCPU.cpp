@@ -1,5 +1,11 @@
 #include "RunMomentumForwardCPU.h"
 
+#ifdef WITH_ROOT
+#include "TH1D.h"
+#include "TFile.h"
+#include "TTree.h"
+#endif
+
 int run_momentum_forward_CPU  (
   SciFi::TrackHits* host_scifi_tracks,
   int* host_scifi_n_tracks,
@@ -18,6 +24,13 @@ int run_momentum_forward_CPU  (
   const float* host_ut_z,
   const uint* host_ut_track_velo_indices,
   const uint number_of_events) {
+#ifdef WITH_ROOT
+  TFile *f = new TFile("../output/scifi_momentum_forward.root", "RECREATE");
+  TTree *t_quadruplets = new TTree("quadruplets", "quadruplets");
+
+  int n_quadruplets;
+  t_quadruplets->Branch("n_quadruplets", &n_quadruplets);
+#endif
 
   // initialize parameters
   char name_coef_T1[200] = "../input/UT_T1_shift_50_tilt_new.tab";
@@ -48,8 +61,9 @@ int run_momentum_forward_CPU  (
   
     // SciFi non-consolidated types
     int* n_forward_tracks_event = host_scifi_n_tracks + i_event;
+    *n_forward_tracks_event = 0;
     SciFi::TrackHits* scifi_tracks_event = host_scifi_tracks + i_event * SciFi::Constants::max_tracks;
-
+    
     const uint total_number_of_hits = host_scifi_hit_count[number_of_events * SciFi::Constants::n_mat_groups_and_mats]; 
     SciFi::HitCount scifi_hit_count {(uint32_t*)host_scifi_hit_count, i_event};
     const uint event_hit_offset = scifi_hit_count.event_offset(); 
@@ -97,101 +111,120 @@ int run_momentum_forward_CPU  (
         qop, scifi_params_T1,
         xf_t1, yf_t1, txf_t1, tyf_t1, der_xf_qop_t1);
 
-      if ( ret ) {
-        n_extrap_T1++;
-
-        // access hits in first layer of T1, layer 0 = zone 0 (y < 0) + zone 1 (y > 0)
-        int x_zone_offset, n_hits_x;
-        get_offset_and_n_hits_for_layer(0, scifi_hit_count, yf_t1, n_hits_x, x_zone_offset);
+      if ( !ret ) continue;
+      n_extrap_T1++;
+      
+      // access hits in first layer of T1, layer 0 = zone 0 (y < 0) + zone 1 (y > 0)
+      int x_zone_offset, n_hits_x;
+      get_offset_and_n_hits_for_layer(0, scifi_hit_count, yf_t1, n_hits_x, x_zone_offset);
+      
+      // access hits in last layer of T1, layer 3 = zone 6 (y < 0) + zone 7 (y > 0)
+      int n_hits_x_other, x_zone_offset_other;
+      get_offset_and_n_hits_for_layer(6, scifi_hit_count, yf_t1, n_hits_x_other, x_zone_offset_other);
+      
+      // access hits in u-layer of T1, layer 1 = zone 2 (y < 0) + zone 3 (y > 0)
+      int n_hits_u, x_zone_offset_u;
+      get_offset_and_n_hits_for_layer(2, scifi_hit_count, yf_t1, n_hits_u, x_zone_offset_u);
+      
+      // access hits in v-layer of T1, layer 1 = zone 4 (y < 0) + zone 5 (y > 0)
+      int n_hits_v, x_zone_offset_v;
+      get_offset_and_n_hits_for_layer(4, scifi_hit_count, yf_t1, n_hits_v, x_zone_offset_v);
         
-        // access hits in last layer of T1, layer 3 = zone 6 (y < 0) + zone 7 (y > 0)
-        int n_hits_x_other, x_zone_offset_other;
-        get_offset_and_n_hits_for_layer(6, scifi_hit_count, yf_t1, n_hits_x_other, x_zone_offset_other);
-        
-        // access hits in u-layer of T1, layer 1 = zone 2 (y < 0) + zone 3 (y > 0)
-        int n_hits_u, x_zone_offset_u;
-        get_offset_and_n_hits_for_layer(2, scifi_hit_count, yf_t1, n_hits_u, x_zone_offset_u);
-        
-        // access hits in v-layer of T1, layer 1 = zone 4 (y < 0) + zone 5 (y > 0)
-        int n_hits_v, x_zone_offset_v;
-        get_offset_and_n_hits_for_layer(4, scifi_hit_count, yf_t1, n_hits_v, x_zone_offset_v);
-        
-        // Variables for cut on x difference between hits of the two 
-        // x layers
-        float slope1, slope2;
-        if ( qop < 0 ) {
-          slope1 = SciFi::MomentumForward::x_diff_layer_qop_slope_a;
-          slope2 = SciFi::MomentumForward::x_diff_layer_qop_slope_b;
-        } else {
-          slope1 = -1.f * SciFi::MomentumForward::x_diff_layer_qop_slope_b;
-          slope2 = -1.f * SciFi::MomentumForward::x_diff_layer_qop_slope_a;
-        }
-        
-        // loop over hits in first x layer of T1 (layer 0)
-        for ( int i_hit = 0; i_hit < n_hits_x; ++i_hit ) { 
-          const int hit_index_0 = x_zone_offset + i_hit;
-          const float x_1 = scifi_hits.x0[hit_index_0];
-          // cut on difference between extrapolated x position and hit
-          if ( fabsf(x_1-xf_t1) > SciFi::MomentumForward::dx_extrap_qop_offset_T1 + SciFi::MomentumForward::dx_extrap_qop_slope_T1 * fabsf(qop) ) continue;
-          n_hits_in_window_l0++;
-          
-          // loop over other x layer of T1 (layer 3)
-          for ( int i_hit_other = 0; i_hit_other < n_hits_x_other; ++i_hit_other ) { 
-            const int hit_index_3 = x_zone_offset_other + i_hit_other;
-            const float x_3 = scifi_hits.x0[hit_index_3];
-            // cut on difference between hits on the two x layers of T1
-            if ( fabsf(x_1-x_3) > SciFi::MomentumForward::x_diff_layer_qop_offset - slope1 * qop 
-                 && fabsf(x_1-x_3) < -1.f * SciFi::MomentumForward::x_diff_layer_qop_offset - slope2 * qop) continue;
-            // cut on difference of tx from the two hits and from the extrapolation 
-            float tx_hits = (x_3-x_1)/SciFi::MomentumForward::dz_x_layers;
-            if ( std::abs(tx_hits - txf_t1) > SciFi::MomentumForward::max_tx_diff) continue;
-            
-            // tx (dx/dz) of the two x hits
-            // dz of x-layers within one station = 210 mm
-            const float tx_x_hits_t1 = (x_3 - x_1) / SciFi::MomentumForward::dz_x_layers; 
-            const float x_at_u = x_1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_u_layers;
-            const float x_at_v = x_1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_v_layers;
-            // loop over hits in u-layer (layer 1)
-            for ( int i_hit_u = 0; i_hit_u < n_hits_u; ++i_hit_u ) { 
-              const int hit_index_1 = x_zone_offset_u + i_hit_u;
-              float x_hit_u = scifi_hits.x0[hit_index_1] + yf_t1 * scifi_hits.dxdy(hit_index_1);
-              
-              // cut on x difference of u-hit and x from the slope of the two x-hits
-              if ( std::abs(x_hit_u - x_at_u) > SciFi::MomentumForward::dx_x_uv_layers_slope ) continue;
-              // loop over hits in v-layer (layer 2)
-              for ( int i_hit_v = 0; i_hit_v < n_hits_v; ++i_hit_v ) { 
-                const int hit_index_2 = x_zone_offset_v + i_hit_v;
-                float x_hit_v = scifi_hits.x0[hit_index_2] + yf_t1 * scifi_hits.dxdy(hit_index_2);
-                
-                // cut on x difference of v-hit and x from the slope of the two x-hits
-                if ( std::abs(x_hit_v - x_at_v) > SciFi::MomentumForward::dx_x_uv_layers_slope ) continue;
-                // found quadruplet!! :-)
-                // store local hit indices in SciFi::TrackHits object
-                SciFi::TrackHits tr;
-                short index = hit_index_0 - event_hit_offset;
-                tr.addHit(index);
-                index = hit_index_1 - event_hit_offset;
-                tr.addHit(index);
-                index = hit_index_2 - event_hit_offset;
-                tr.addHit(index);
-                index = hit_index_3 - event_hit_offset;
-                tr.addHit(index);
-                
-                scifi_tracks_event[(*n_forward_tracks_event)++] = tr;
-              } // loop over hits in layer 2
-              
-            } // loop over hits in layer 1
-            
-          } // loop over hits in layer 3
-
-        } // loop over hits in layer 0
-
+      // Variables for cut on x difference between hits of the two 
+      // x layers
+      float slope1, slope2;
+      if ( qop < 0 ) {
+        slope1 = SciFi::MomentumForward::x_diff_layer_qop_slope_a;
+        slope2 = SciFi::MomentumForward::x_diff_layer_qop_slope_b;
+      } else {
+        slope1 = -1.f * SciFi::MomentumForward::x_diff_layer_qop_slope_b;
+        slope2 = -1.f * SciFi::MomentumForward::x_diff_layer_qop_slope_a;
       }
+      
+      // loop over hits in first x layer of T1 (layer 0)
+      for ( int i_hit = 0; i_hit < n_hits_x; ++i_hit ) { 
+        const int hit_index_0 = x_zone_offset + i_hit;
+        const float x_1 = scifi_hits.x0[hit_index_0];
+        // cut on difference between extrapolated x position and hit
+        if ( fabsf(x_1-xf_t1) > SciFi::MomentumForward::dx_extrap_qop_offset_T1 + SciFi::MomentumForward::dx_extrap_qop_slope_T1 * fabsf(qop) ) continue;
+        n_hits_in_window_l0++;
+        
+        // loop over other x layer of T1 (layer 3)
+        for ( int i_hit_other = 0; i_hit_other < n_hits_x_other; ++i_hit_other ) { 
+          const int hit_index_3 = x_zone_offset_other + i_hit_other;
+          const float x_3 = scifi_hits.x0[hit_index_3];
+          // cut on difference between hits on the two x layers of T1
+          if ( fabsf(x_1-x_3) > SciFi::MomentumForward::x_diff_layer_qop_offset - slope1 * qop 
+               && fabsf(x_1-x_3) < -1.f * SciFi::MomentumForward::x_diff_layer_qop_offset - slope2 * qop) continue;
+          // cut on difference of tx from the two hits and from the extrapolation 
+          float tx_hits = (x_3-x_1)/SciFi::MomentumForward::dz_x_layers;
+          if ( std::abs(tx_hits - txf_t1) > SciFi::MomentumForward::max_tx_diff) continue;
+          
+          // tx (dx/dz) of the two x hits
+          const float tx_x_hits_t1 = (x_3 - x_1) / SciFi::MomentumForward::dz_x_layers; 
+          const float x_at_u = x_1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_u_layers;
+          const float x_at_v = x_1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_v_layers;
+          // loop over hits in u-layer (layer 1)
+          for ( int i_hit_u = 0; i_hit_u < n_hits_u; ++i_hit_u ) { 
+            const int hit_index_1 = x_zone_offset_u + i_hit_u;
+            float x_hit_u = scifi_hits.x0[hit_index_1] + yf_t1 * scifi_hits.dxdy(hit_index_1);
+              
+            // cut on x difference of u-hit and x from the slope of the two x-hits
+            if ( std::abs(x_hit_u - x_at_u) > SciFi::MomentumForward::dx_x_uv_layers_slope ) continue;
+            // loop over hits in v-layer (layer 2)
+            for ( int i_hit_v = 0; i_hit_v < n_hits_v; ++i_hit_v ) { 
+              const int hit_index_2 = x_zone_offset_v + i_hit_v;
+              float x_hit_v = scifi_hits.x0[hit_index_2] + yf_t1 * scifi_hits.dxdy(hit_index_2);
+              
+              // cut on x difference of v-hit and x from the slope of the two x-hits
+              if ( std::abs(x_hit_v - x_at_v) > SciFi::MomentumForward::dx_x_uv_layers_slope ) continue;
+              // found quadruplet!! :-)
+              // store local hit indices in SciFi::TrackHits object
+              SciFi::TrackHits tr;
+              short index = hit_index_0 - event_hit_offset;
+              tr.addHit(index);
+              index = hit_index_1 - event_hit_offset;
+              tr.addHit(index);
+              index = hit_index_2 - event_hit_offset;
+              tr.addHit(index);
+              index = hit_index_3 - event_hit_offset;
+              tr.addHit(index);
+                
+              assert( (*n_forward_tracks_event) < SciFi::Constants::max_tracks );
+              scifi_tracks_event[(*n_forward_tracks_event)++] = tr;
+            } // loop over hits in layer 2
+              
+          } // loop over hits in layer 1
+            
+        } // loop over hits in layer 3
 
-    } // veloUT tracks
+      } // loop over hits in layer 0
+
+    } // veloUT tracks 
+
+    int zone_offset, n_hits;
+    get_offset_and_n_hits_for_layer(0, scifi_hit_count, -1., n_hits, zone_offset);
+    debug_cout << "n_hits zone 0 = " << n_hits << std::endl;
+    get_offset_and_n_hits_for_layer(0, scifi_hit_count, 1., n_hits, zone_offset);
+    debug_cout << "n_hits zone 1 = " << n_hits << std::endl;
+    get_offset_and_n_hits_for_layer(2, scifi_hit_count, -1., n_hits, zone_offset);
+    debug_cout << "n_hits zone 2 = " << n_hits << std::endl;
+    get_offset_and_n_hits_for_layer(2, scifi_hit_count, 1., n_hits, zone_offset);
+    debug_cout << "n_hits zone 3 = " << n_hits << std::endl;
+#ifdef WITH_ROOT
+    n_quadruplets = *n_forward_tracks_event;
+    t_quadruplets->Fill();
+#endif
+    assert( *n_forward_tracks_event < SciFi::Constants::max_tracks );
+    debug_cout << "In event " << i_event << ": number of tracks = " << *n_forward_tracks_event << std::endl;
   } // events
 
   info_cout << "Tracking: Extrapolation to T1 worked: " << float(n_extrap_T1) / n_veloUT_tracks << std::endl;
   
+#ifdef WITH_ROOT
+  f->Write();
+  f->Close();
+#endif
+
 }
 
