@@ -251,7 +251,7 @@ typedef std::tuple<
     dev_active_tracks,
     dev_windows_layers
   >,
-  AlgorithmDependencies<scifi_calculate_cluster_count_t,
+  AlgorithmDependencies<scifi_calculate_cluster_count_v5_t,
     dev_scifi_raw_input,
     dev_scifi_raw_input_offsets,
     dev_scifi_hit_count,
@@ -261,14 +261,14 @@ typedef std::tuple<
     dev_scifi_hit_count,
     dev_prefix_sum_auxiliary_array_4
   >,
-  AlgorithmDependencies<scifi_pre_decode_t,
+  AlgorithmDependencies<scifi_pre_decode_v5_t,
     dev_scifi_raw_input,
     dev_scifi_raw_input_offsets,
     dev_scifi_hit_count,
     dev_scifi_hits,
     dev_event_list
   >,
-  AlgorithmDependencies<scifi_raw_bank_decoder_t,
+  AlgorithmDependencies<scifi_raw_bank_decoder_v5_t,
     dev_scifi_raw_input,
     dev_scifi_raw_input_offsets,
     dev_scifi_hit_count,

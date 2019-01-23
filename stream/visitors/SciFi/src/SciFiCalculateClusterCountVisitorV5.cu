@@ -1,8 +1,8 @@
 #include "SequenceVisitor.cuh"
-#include "SciFiCalculateClusterCount.cuh"
+#include "SciFiCalculateClusterCountV5.cuh"
 
 template<>
-void SequenceVisitor::set_arguments_size<scifi_calculate_cluster_count_t>(
+void SequenceVisitor::set_arguments_size<scifi_calculate_cluster_count_v5_t>(
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   const HostBuffers& host_buffers,
@@ -12,8 +12,8 @@ void SequenceVisitor::set_arguments_size<scifi_calculate_cluster_count_t>(
 }
 
 template<>
-void SequenceVisitor::visit<scifi_calculate_cluster_count_t>(
-  scifi_calculate_cluster_count_t& state,
+void SequenceVisitor::visit<scifi_calculate_cluster_count_v5_t>(
+  scifi_calculate_cluster_count_v5_t& state,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   argument_manager_t& arguments,

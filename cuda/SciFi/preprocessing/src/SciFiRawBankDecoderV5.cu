@@ -1,10 +1,10 @@
-#include "SciFiRawBankDecoder.cuh"
+#include "SciFiRawBankDecoderV5.cuh"
 #include "assert.h"
 
 using namespace SciFi;
 
 // Merge of PrStoreFTHit and RawBankDecoder.
-__device__ void make_cluster (
+__device__ void make_cluster_v5 (
   const int hit_index,
   const SciFi::HitCount& hit_count,
   const SciFiGeometry& geom,
@@ -43,7 +43,7 @@ __device__ void make_cluster (
   hits.assembled_datatype[hit_index] = fraction << 20 | plane_code << 15 | pseudoSize << 11 | mat;
 };
 
-__global__ void scifi_raw_bank_decoder(
+__global__ void scifi_raw_bank_decoder_v5(
   char *scifi_events,
   uint *scifi_event_offsets,
   const uint *event_list,
@@ -113,7 +113,7 @@ __global__ void scifi_raw_bank_decoder(
       }
     }
 
-    make_cluster(
+    make_cluster_v5(
       hit_count.event_offset() + i,
       hit_count,
       geom,

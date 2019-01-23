@@ -1,9 +1,9 @@
-#include "SciFiPreDecode.cuh"
+#include "SciFiPreDecodeV5.cuh"
 #include "assert.h"
 
 using namespace SciFi;
 
-__device__ void store_sorted_cluster_reference (
+__device__ void store_sorted_cluster_reference_v5 (
   const SciFi::HitCount& hit_count,
   const uint32_t uniqueMat,
   const uint32_t chan,
@@ -38,7 +38,7 @@ __device__ void store_sorted_cluster_reference (
     | (delta & 0xFF);
 };
 
-__global__ void scifi_pre_decode(
+__global__ void scifi_pre_decode_v5(
   char *scifi_events,
   uint *scifi_event_offsets,
   const uint *event_list,
@@ -86,7 +86,7 @@ __global__ void scifi_pre_decode(
         if (!cSize(c) || it+1 == last) {
           const int condition_1 = 0x00;
 
-          store_sorted_cluster_reference (
+          store_sorted_cluster_reference_v5 (
             hit_count,
             correctedMat,
             ch,
@@ -112,7 +112,7 @@ __global__ void scifi_pre_decode(
               for (auto j = SciFiRawBankParams::clusterMaxWidth; j < delta; j += SciFiRawBankParams::clusterMaxWidth){
                 // Delta equals j / SciFiRawBankParams::clusterMaxWidth
                 const int delta_parameter = j / SciFiRawBankParams::clusterMaxWidth;
-                store_sorted_cluster_reference (
+                store_sorted_cluster_reference_v5 (
                   hit_count,
                   correctedMat,
                   ch,
@@ -127,7 +127,7 @@ __global__ void scifi_pre_decode(
 
               // Delta equals 0
               const int delta_parameter = 0;
-              store_sorted_cluster_reference (
+              store_sorted_cluster_reference_v5 (
                 hit_count,
                 correctedMat,
                 ch,
@@ -143,7 +143,7 @@ __global__ void scifi_pre_decode(
               const int condition_2 = 0x01;
 
               const auto widthClus = 2 * delta - 1 + fraction(c2);
-              store_sorted_cluster_reference (
+              store_sorted_cluster_reference_v5 (
                 hit_count,
                 correctedMat,
                 ch,
@@ -163,7 +163,7 @@ __global__ void scifi_pre_decode(
             // Reconstructs a single cluster
             const int condition_1 = 0x02;
 
-            store_sorted_cluster_reference (
+            store_sorted_cluster_reference_v5 (
               hit_count,
               correctedMat,
               ch,

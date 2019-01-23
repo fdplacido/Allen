@@ -1,8 +1,8 @@
-#include "SciFiCalculateClusterCount.cuh"
+#include "SciFiCalculateClusterCountV5.cuh"
 
 using namespace SciFi;
 
-__global__ void scifi_calculate_cluster_count(
+__global__ void scifi_calculate_cluster_count_v5(
   char* scifi_raw_input,
   uint* scifi_raw_input_offsets,
   const uint* event_list,

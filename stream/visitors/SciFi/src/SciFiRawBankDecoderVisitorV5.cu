@@ -1,8 +1,8 @@
 #include "SequenceVisitor.cuh"
-#include "SciFiRawBankDecoder.cuh"
+#include "SciFiRawBankDecoderV5.cuh"
 
 template<>
-void SequenceVisitor::set_arguments_size<scifi_raw_bank_decoder_t>(
+void SequenceVisitor::set_arguments_size<scifi_raw_bank_decoder_v5_t>(
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   const HostBuffers& host_buffers,
@@ -13,8 +13,8 @@ void SequenceVisitor::set_arguments_size<scifi_raw_bank_decoder_t>(
 
 
 template<>
-void SequenceVisitor::visit<scifi_raw_bank_decoder_t>(
-  scifi_raw_bank_decoder_t& state,
+void SequenceVisitor::visit<scifi_raw_bank_decoder_v5_t>(
+  scifi_raw_bank_decoder_v5_t& state,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   argument_manager_t& arguments,

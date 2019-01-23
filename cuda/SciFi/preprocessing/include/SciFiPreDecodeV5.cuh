@@ -4,7 +4,7 @@
 #include "SciFiEventModel.cuh"
 #include "Handler.cuh"
 
-__device__ void store_sorted_cluster_reference (
+__device__ void store_sorted_cluster_reference_v5 (
   const SciFi::HitCount& hit_count,
   const uint32_t uniqueMat,
   const uint32_t chan,
@@ -16,7 +16,7 @@ __device__ void store_sorted_cluster_reference (
   const int delta,
   SciFi::Hits& hits);
 
-__global__ void scifi_pre_decode(
+__global__ void scifi_pre_decode_v5(
   char *scifi_events,
   uint *scifi_event_offsets,
   const uint *event_list,
@@ -25,4 +25,4 @@ __global__ void scifi_pre_decode(
   char *scifi_geometry,
   const float* dev_inv_clus_res);
 
-ALGORITHM(scifi_pre_decode, scifi_pre_decode_t)
+ALGORITHM(scifi_pre_decode_v5, scifi_pre_decode_v5_t)

@@ -1,8 +1,8 @@
 #include "SequenceVisitor.cuh"
-#include "SciFiPreDecode.cuh"
+#include "SciFiPreDecodeV5.cuh"
 
 template<>
-void SequenceVisitor::set_arguments_size<scifi_pre_decode_t>(
+void SequenceVisitor::set_arguments_size<scifi_pre_decode_v5_t>(
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   const HostBuffers& host_buffers,
@@ -12,8 +12,8 @@ void SequenceVisitor::set_arguments_size<scifi_pre_decode_t>(
 }
 
 template<>
-void SequenceVisitor::visit<scifi_pre_decode_t>(
-  scifi_pre_decode_t& state,
+void SequenceVisitor::visit<scifi_pre_decode_v5_t>(
+  scifi_pre_decode_v5_t& state,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   argument_manager_t& arguments,
