@@ -27,9 +27,12 @@ int run_momentum_forward_CPU  (
 #ifdef WITH_ROOT
   TFile *f = new TFile("../output/scifi_momentum_forward.root", "RECREATE");
   TTree *t_quadruplets = new TTree("quadruplets", "quadruplets");
+  TTree *t_tracks = new TTree("tracks", "tracks");
 
   int n_quadruplets;
+  int n_tracks;
   t_quadruplets->Branch("n_quadruplets", &n_quadruplets);
+  t_tracks->Branch("n_tracks", &n_tracks);
 #endif
 
   // initialize parameters
@@ -110,6 +113,10 @@ int run_momentum_forward_CPU  (
         UT_state.tx, UT_state.ty,
         qop, scifi_params_T1,
         xf_t1, yf_t1, txf_t1, tyf_t1, der_xf_qop_t1);
+
+#ifdef WITH_ROOT
+      n_quadruplets = 0;
+#endif
 
       if ( !ret ) continue;
       n_extrap_T1++;
@@ -192,6 +199,7 @@ int run_momentum_forward_CPU  (
                 
               assert( (*n_forward_tracks_event) < SciFi::Constants::max_tracks );
               scifi_tracks_event[(*n_forward_tracks_event)++] = tr;
+              n_quadruplets++;
             } // loop over hits in layer 2
               
           } // loop over hits in layer 1
@@ -199,6 +207,8 @@ int run_momentum_forward_CPU  (
         } // loop over hits in layer 3
 
       } // loop over hits in layer 0
+
+      t_quadruplets->Fill();
 
     } // veloUT tracks 
 
@@ -212,8 +222,8 @@ int run_momentum_forward_CPU  (
     get_offset_and_n_hits_for_layer(2, scifi_hit_count, 1., n_hits, zone_offset);
     debug_cout << "n_hits zone 3 = " << n_hits << std::endl;
 #ifdef WITH_ROOT
-    n_quadruplets = *n_forward_tracks_event;
-    t_quadruplets->Fill();
+    n_tracks = *n_forward_tracks_event;
+    t_tracks->Fill();
 #endif
     assert( *n_forward_tracks_event < SciFi::Constants::max_tracks );
     debug_cout << "In event " << i_event << ": number of tracks = " << *n_forward_tracks_event << std::endl;

@@ -30,10 +30,20 @@ namespace SciFi {
     constexpr float dz_x_layers = 3.f * dz_layers_station;
     constexpr float dz_x_u_layers = 1.f * dz_layers_station;
     constexpr float dz_x_v_layers = 2.f * dz_layers_station;
+
+    // z distance between various layers of different stations
+    constexpr float dz_x_T1_0_T2_0 = 682 * Gaudi::Units::mm;
+    constexpr float dz_x_T1_0_T2_3 = 892 * Gaudi::Units::mm;
+    constexpr float dz_x_T1_0_T3_0 = 1367 * Gaudi::Units::mm;
+    constexpr float dz_x_T1_0_T3_3 = 1577 * Gaudi::Units::mm;
     
     // cut on x difference between x- and u-/v-layers
     constexpr float dx_x_uv_layers = 200.f * Gaudi::Units::mm;
     constexpr float dx_x_uv_layers_slope = 2.f * Gaudi::Units::mm;
+
+    // cut on x difference between T1 and T2/T3 x-layers
+    constexpr float dx_x_T2_T3_offset = 500 * Gaudi::Units::mm;
+    constexpr float dx_x_T2_T3_slope = 6.e6;
 
     constexpr float z_last_UT_plane = 2642.f;
   }

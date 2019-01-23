@@ -8,8 +8,6 @@
 
 
 int momentum_forward_studies(
-  SciFi::TrackHits* host_scifi_tracks,
-  int* host_scifi_n_tracks,
   const uint* host_scifi_hits,
   const uint* host_scifi_hit_count,
   const char* host_scifi_geometry,
@@ -42,8 +40,6 @@ int momentum_forward_studies(
 #ifdef WITH_ROOT
   // Histograms only for checking and debugging
   TFile *f = new TFile("../output/scifi.root", "RECREATE");
-  TTree *t_Forward_tracks = new TTree("Forward_tracks", "Forward_tracks");
-  TTree *t_statistics = new TTree("statistics", "statistics");
   TTree *t_scifi_hits = new TTree("scifi_hits","scifi_hits");
   TTree *t_extrap_T1 = new TTree("extrap_T1","extrap_T1");
   TTree *t_extrap_T3 = new TTree("extrap_T3","extrap_T3");
@@ -66,6 +62,7 @@ int momentum_forward_studies(
   float p_diff_before_update_t1, p_diff_after_update_t1, p_diff_before_after_t1, p_resolution_after_update_t1;
   float qop_diff_before_update_t1, qop_diff_after_update_t1, qop_diff_before_after_t1, qop_resolution_after_update_t1;
   float tx_x_hits_t1, res_x_u_t1, res_x_v_t1, res_x_u_slope_t1, res_x_v_slope_t1;
+  float res_x_T2_0, res_x_T2_3, res_x_T3_0, res_x_T3_3;
 
   float xf_t3, yf_t3, txf_t3, tyf_t3, der_xf_qop_t3, qop_update_t3;
   float res_x_0_t3, res_x_3_t3, dx_t3, x_extrap_t3, true_x_t3, res_x_other_t3;;
@@ -78,15 +75,7 @@ int momentum_forward_studies(
   bool t1_extrap_worked, t3_extrap_worked, isLong;
   float p_true;
   bool match_t1, match_t3, match_t1_other, match_t3_other, match_t1_u, match_t1_v;
-
-  t_Forward_tracks->Branch("qop", &qop);
-  t_Forward_tracks->Branch("state_x", &state_x);
-  t_Forward_tracks->Branch("state_y", &state_y);
-  t_Forward_tracks->Branch("state_z", &state_z);
-  t_Forward_tracks->Branch("state_tx", &state_tx);
-  t_Forward_tracks->Branch("state_ty", &state_ty);
-  
-  t_statistics->Branch("n_tracks", &n_tracks);
+  bool match_T2_0, match_T2_3, match_T3_0, match_T3_3;
 
   t_scifi_hits->Branch("planeCode", &planeCode);
   t_scifi_hits->Branch("LHCbID", &LHCbID);
@@ -130,7 +119,16 @@ int momentum_forward_studies(
   t_extrap_T1->Branch("res_x_v", &res_x_v_t1);
   t_extrap_T1->Branch("res_x_v_slope", &res_x_v_slope_t1);
   t_extrap_T1->Branch("match_v", &match_t1_v);
+  t_extrap_T1->Branch("match_T2_0", &match_T2_0);
+  t_extrap_T1->Branch("match_T2_3", &match_T2_3);
+  t_extrap_T1->Branch("res_x_T2_0", &res_x_T2_0);
+  t_extrap_T1->Branch("res_x_T2_3", &res_x_T2_3);
+  t_extrap_T1->Branch("match_T3_0", &match_T3_0);
+  t_extrap_T1->Branch("match_T3_3", &match_T3_3);
+  t_extrap_T1->Branch("res_x_T3_0", &res_x_T3_0);
+  t_extrap_T1->Branch("res_x_T3_3", &res_x_T3_3);
 
+  
   t_extrap_T3->Branch("xf", &xf_t3);
   t_extrap_T3->Branch("yf", &yf_t3);
   t_extrap_T3->Branch("txf", &txf_t3);
@@ -204,9 +202,6 @@ int momentum_forward_studies(
     n_veloUT_tracks += n_veloUT_tracks_event;
   
     // SciFi non-consolidated types
-    int* n_forward_tracks = host_scifi_n_tracks + i_event;
-    SciFi::TrackHits* scifi_tracks_event = host_scifi_tracks + i_event * SciFi::Constants::max_tracks;
-
     const uint total_number_of_hits = host_scifi_hit_count[number_of_events * SciFi::Constants::n_mat_groups_and_mats]; 
     SciFi::HitCount scifi_hit_count {(uint32_t*)host_scifi_hit_count, i_event};
     
@@ -277,7 +272,11 @@ int momentum_forward_studies(
       match_t3 = false;
       n_hits_in_window_0_t1 = 0;
       n_hits_in_window_0_t3 = 0;
-      
+      match_T2_0 = false;
+      match_T2_3 = false;
+      match_T3_0 = false;
+      match_T3_3 = false;
+
       // sign of momentum -> charge of MCP
       // Caution: this is only set correctly if the veloUT track was matched to an MCP
       // set to 1e9 if not matched
@@ -382,6 +381,74 @@ int momentum_forward_studies(
               if ( match_t1_other ) break;
             }
             
+            // Check x-resolution in x-layers of T2
+            // using a straight line to extrapolate
+            if ( match_t1 && match_t1_other ) {
+              // first x layer of T2
+              const float x_pred_T2_0 = true_x_t1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_T1_0_T2_0;
+              // second x layer of T2
+             const float x_pred_T2_3 = true_x_t1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_T1_0_T2_3; 
+             // access hits in first layer of T2, layer 4 = zone 8 (y < 0) + zone 9 (y > 0)
+             int zone_offset_T2, n_hits_T2;
+             get_offset_and_n_hits_for_layer(8, scifi_hit_count, yf_t1, n_hits_T2, zone_offset_T2);
+             for ( const auto true_id : true_scifi_ids ) {
+               for ( int i_hit = 0; i_hit < n_hits_T2; ++i_hit ) { 
+                 const int hit_index = zone_offset_T2 + i_hit;
+                 const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+                 if ( true_id == lhcbid ) {
+                   float x_hit = scifi_hits.x0[hit_index];
+                   res_x_T2_0 = x_hit = x_pred_T2_0;
+                   match_T2_0 = true;
+                 }
+               }
+             }
+             // access hits in last layer of T2, layer 7 = zone 14 (y < 0) + zone 15 (y > 0)
+             get_offset_and_n_hits_for_layer(14, scifi_hit_count, yf_t1, n_hits_T2, zone_offset_T2);
+             for ( const auto true_id : true_scifi_ids ) {
+               for ( int i_hit = 0; i_hit < n_hits_T2; ++i_hit ) { 
+                 const int hit_index = zone_offset_T2 + i_hit;
+                 const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+                 if ( true_id == lhcbid ) {
+                   float x_hit = scifi_hits.x0[hit_index];
+                   res_x_T2_3 = x_hit = x_pred_T2_3;
+                   match_T2_3 = true;
+                 }
+               }
+             }
+             
+             // first x layer of T3
+             const float x_pred_T3_0 = true_x_t1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_T1_0_T3_0;
+             // second x layer of T3
+             const float x_pred_T3_3 = true_x_t1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_T1_0_T3_3; 
+             // access hits in first layer of T3, layer 8 = zone 16 (y < 0) + zone 17 (y > 0)
+             int zone_offset_T3, n_hits_T3;
+             get_offset_and_n_hits_for_layer(16, scifi_hit_count, yf_t1, n_hits_T3, zone_offset_T3);
+             for ( const auto true_id : true_scifi_ids ) {
+               for ( int i_hit = 0; i_hit < n_hits_T3; ++i_hit ) { 
+                 const int hit_index = zone_offset_T3 + i_hit;
+                 const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+                 if ( true_id == lhcbid ) {
+                   float x_hit = scifi_hits.x0[hit_index];
+                   res_x_T3_0 = x_hit = x_pred_T3_0;
+                   match_T3_0 = true;
+                 }
+               }
+             }
+             // access hits in last layer of T3, layer 11 = zone 22 (y < 0) + zone 23 (y > 0)
+             get_offset_and_n_hits_for_layer(22, scifi_hit_count, yf_t1, n_hits_T3, zone_offset_T3);
+             for ( const auto true_id : true_scifi_ids ) {
+               for ( int i_hit = 0; i_hit < n_hits_T3; ++i_hit ) { 
+                 const int hit_index = zone_offset_T3 + i_hit;
+                 const uint32_t lhcbid = scifi_hits.LHCbID(hit_index);
+                 if ( true_id == lhcbid ) {
+                   float x_hit = scifi_hits.x0[hit_index];
+                   res_x_T3_3 = x_hit = x_pred_T3_3;
+                   match_T3_3 = true;
+                 }
+               }
+             }
+            }
+          
             // Check y-resolution in u-layer using x(y=0) values
             if ( match_t1_other ) {
               float x_at_u = true_x_t1 + tx_x_hits_t1 * SciFi::MomentumForward::dz_x_u_layers;
@@ -578,24 +645,6 @@ int momentum_forward_studies(
       t_ut_tracks->Fill();
 #endif
     } // loop over veloUT tracks
-    
-    
-    *n_forward_tracks = 0;
-    
-#ifdef WITH_ROOT
-    // store qop in tree
-    for ( int i_track = 0; i_track < *n_forward_tracks; ++i_track ) {
-      qop = scifi_tracks_event[i_track].qop;
-      state_x  = scifi_tracks_event[i_track].state.x;
-      state_y  = scifi_tracks_event[i_track].state.y;
-      state_z  = scifi_tracks_event[i_track].state.z;
-      state_tx = scifi_tracks_event[i_track].state.tx;
-      state_ty = scifi_tracks_event[i_track].state.ty;
-      t_Forward_tracks->Fill();
-    }
-    n_tracks = n_forward_tracks[i_event];
-    t_statistics->Fill();
-#endif 
   }
   
 #ifdef WITH_ROOT

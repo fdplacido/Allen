@@ -34,8 +34,6 @@ void SequenceVisitor::check<consolidate_ut_tracks_t>(
 
   // Run MomentumForward on x86
   // momentum_forward_studies(
-  //   host_buffers.scifi_tracks_events.data(),
-  //   host_buffers.host_atomics_scifi,
   //   host_buffers.host_scifi_hits.data(),
   //   host_buffers.host_scifi_hit_count.data(),
   //   constants.host_scifi_geometry,

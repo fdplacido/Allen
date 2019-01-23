@@ -26,8 +26,6 @@
 MiniState state_at_z(const MiniState state, const float z);
 
 int momentum_forward_studies (
-  SciFi::TrackHits* host_scifi_tracks_events,
-  int* host_scifi_n_tracks,
   const uint* host_scifi_hits,
   const uint* host_scifi_hit_count,
   const char* host_scifi_geometry, 
