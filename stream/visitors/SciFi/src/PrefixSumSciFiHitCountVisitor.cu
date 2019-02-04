@@ -47,5 +47,18 @@ void SequenceVisitor::visit<prefix_sum_scifi_hits_t>(
   cudaEventRecord(cuda_generic_event, cuda_stream);
   cudaEventSynchronize(cuda_generic_event);
 
-  // info_cout << "Total SciFi cluster count: " << *host_buffers.host_accumulated_number_of_scifi_hits << std::endl;
+  info_cout << "Total SciFi cluster count: " << *host_buffers.host_accumulated_number_of_scifi_hits << std::endl;
+
+  const uint hit_count_uints = 2 * host_buffers.host_number_of_selected_events[0] * SciFi::Constants::n_mats + 1;
+  uint host_scifi_hit_count[hit_count_uints];
+  cudaCheck(cudaMemcpyAsync(&host_scifi_hit_count, arguments.offset<dev_scifi_hit_count>(), hit_count_uints*sizeof(uint), cudaMemcpyDeviceToHost, cuda_stream));
+  cudaEventRecord(cuda_generic_event, cuda_stream);
+  cudaEventSynchronize(cuda_generic_event);
+  SciFi::SciFiGeometry host_geom(constants.host_scifi_geometry);
+  std::ofstream outfile("counts_v6.txt");
+  
+  for(size_t event = 0; event < host_buffers.host_number_of_selected_events[0]; event++) {
+    SciFi::HitCount host_scifi_hit_count_struct(host_scifi_hit_count, event);
+    outfile << host_scifi_hit_count_struct.event_number_of_hits() << std::endl;
+  }
 }
