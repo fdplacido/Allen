@@ -74,8 +74,7 @@ __global__ void scifi_raw_bank_decoder_v6(
     //   Condition 2.1: log2(n+1) - 8 bits
     const int raw_bank_number = (cluster_reference >> 24) & 0xFF;
     const int it_number = (cluster_reference >> 16) & 0xFF;
-    const int condition_1 = (cluster_reference >> 14) & 0x03;
-    const int condition_2 = (cluster_reference >> 13) & 0x01;
+    const int condition = (cluster_reference >> 13) & 0x03;
     const int delta_parameter = cluster_reference & 0xFF;
 
     const auto rawbank = event.getSciFiRawBank(raw_bank_number);
@@ -91,27 +90,49 @@ __global__ void scifi_raw_bank_decoder_v6(
     uint8_t cluster_fraction = fraction(c);
     uint8_t pseudoSize = 4;
 
-    if (condition_1 == 0x01) {
+    if(condition == 0x01) {
+      pseudoSize = 0;
+    } else if(condition > 0x01) {
       const auto c2 = *(it+1);
-      const auto delta = cell(c2) - cell(c);
+      const auto widthClus = (cell(c2) - cell(c) + 2);
 
-      if (condition_2 == 0x00) {
+      if(condition == 0x02) {
         pseudoSize = 0;
-
-        if (delta_parameter == 0) {
-          // add the last edge
-          cluster_chan += delta;
-          cluster_fraction = fraction(c2);
-        } else {
-          cluster_chan += delta_parameter * SciFiRawBankParams::clusterMaxWidth;
-        }
-      } else { // (condition_2 == 0x01)
-        const auto widthClus = 2*delta - 1 + fraction(c2);
-        cluster_chan += (widthClus-1)/2 - (SciFiRawBankParams::clusterMaxWidth - 1)/2;
-        cluster_fraction = (widthClus-1)%2;
+        cluster_fraction = 1;
+        cluster_chan += delta_parameter * 4;
+      } else if(condition == 0x03) {
+        pseudoSize = 0;
+        cluster_fraction = (widthClus - 1) % 2;
+        cluster_chan += delta_parameter * 4 + (widthClus - delta_parameter - 1) / 2 - 1;
+      } else if(condition == 0x04) {
         pseudoSize = widthClus;
+        cluster_fraction = (widthClus - 1) % 2;
+        cluster_chan += (widthClus-1)/2 - 1;
       }
     }
+
+
+    //    if (condition_1 == 0x01) {
+    //      const auto c2 = *(it+1);
+    //      const auto delta = cell(c2) - cell(c);
+    //
+    //      if (condition_2 == 0x00) {
+    //        pseudoSize = 0;
+    //
+    //        if (delta_parameter == 0) {
+    //          // add the last edge
+    //          cluster_chan += delta;
+    //          cluster_fraction = fraction(c2);
+    //        } else {
+    //          cluster_chan += delta_parameter * SciFiRawBankParams::clusterMaxWidth;
+    //        }
+    //      } else { // (condition_2 == 0x01)
+    //        const auto widthClus = 2*delta - 1 + fraction(c2);
+    //        cluster_chan += (widthClus-1)/2 - (SciFiRawBankParams::clusterMaxWidth - 1)/2;
+    //        cluster_fraction = (widthClus-1)%2;
+    //        pseudoSize = widthClus;
+    //      }
+    //    }
 
     make_cluster_v6(
       hit_count.event_offset() + i,

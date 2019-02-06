@@ -48,8 +48,5 @@ __global__ void scifi_calculate_cluster_count_v5(
         }
       }
     }
-
-    //uint32_t* const hits_layer = hit_count.n_hits_layers + i;
-    //atomicAdd(hits_layer, cluster_count);
   }
 }
