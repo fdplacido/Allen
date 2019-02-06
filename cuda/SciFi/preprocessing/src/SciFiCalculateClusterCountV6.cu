@@ -30,7 +30,11 @@ __global__ void scifi_calculate_cluster_count_v6(
     for( ;  it < last; ++it ){ // loop over the clusters
       uint16_t c = *it;
       uint32_t ch = geom.bank_first_channel[rawbank.sourceID] + channelInBank(c);
-      hits_mat = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat();
+      if(i < SciFi::Constants::n_consecutive_raw_banks)
+        hits_mat = hit_count.mat_offsets + i;
+      else
+        hits_mat = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat() -
+          SciFi::Constants::n_consecutive_raw_banks * (SciFi::Constants::n_mats_per_consec_raw_bank - 1);
       if( !cSize(c) ) {  //Not flagged as large
         atomicAdd(hits_mat, 1);
       } else if( fraction(c) ) { // flagged as first edge of large cluster
@@ -42,9 +46,10 @@ __global__ void scifi_calculate_cluster_count_v6(
           assert( cSize(c2) && !fraction(c2) );
           unsigned int widthClus = (cell(c2) - cell(c) + 2);
           if ( widthClus  > 8 )
-            atomicAdd(hits_mat, widthClus / 4);
-          //else
-          atomicAdd(hits_mat, 1);
+            // number of for loop passes + one additional
+            atomicAdd(hits_mat, widthClus / 4 + 1);
+          else
+            atomicAdd(hits_mat, 1);
           ++it;
         }
       }

@@ -111,36 +111,19 @@ __global__ void scifi_pre_decode_v6(
             0x00, // Condition 2
             0x00, // Delta
             hits);
-          //else {
-            const unsigned c2 = *(it+1);
-          if (cSize(c2) && !fraction(c2) ) {
+          const unsigned c2 = *(it+1);
+          assert(cSize(c2) && !fraction(c2) );
             // Condition 1: "01"
             // Reconstructs a big cluster, composed of two fragments
-            const int condition_1 = 0x01;
+          //const int condition_1 = 0x01;
 
-            const auto delta = (cell(c2) - cell(c));
-            if (delta  > SciFiRawBankParams::clusterMaxWidth) {
-              // Condition 2: "0"
-              const int condition_2 = 0x00;
-
-              for (auto j = SciFiRawBankParams::clusterMaxWidth; j < delta; j += SciFiRawBankParams::clusterMaxWidth){
-                // Delta equals j / SciFiRawBankParams::clusterMaxWidth
-                const int delta_parameter = j / SciFiRawBankParams::clusterMaxWidth;
-                store_sorted_cluster_reference_v6 (
-                  hit_count,
-                  correctedMat,
-                  ch,
-                  (uint32_t*) &shared_mat_offsets[it_number],
-                  i,
-                  it_number,
-                  condition_1,
-                  condition_2,
-                  delta_parameter,
-                  hits);
-              }
-
-              // Delta equals 0
-              const int delta_parameter = 0;
+          const unsigned int widthClus = (cell(c2) - cell(c) + 2 );
+          if (widthClus > 8) {
+            // Condition 2: "0"
+            const int condition_2 = 0x00;
+            auto j = 0;
+            for (; j < widthClus - 4; j += 4){
+              // Delta equals j / SciFiRawBankParams::clusterMaxWidth
               store_sorted_cluster_reference_v6 (
                 hit_count,
                 correctedMat,
@@ -150,33 +133,11 @@ __global__ void scifi_pre_decode_v6(
                 it_number,
                 condition_1,
                 condition_2,
-                delta_parameter,
-                hits);
-            } else {
-              // Condition 2: "1"
-              const int condition_2 = 0x01;
-
-              const auto widthClus = 2 * delta - 1 + fraction(c2);
-              store_sorted_cluster_reference_v6 (
-                hit_count,
-                correctedMat,
-                ch,
-                (uint32_t*) &shared_mat_offsets[it_number],
-                i,
-                it_number,
-                condition_1,
-                condition_2,
-                0x00,
+                0,//delta_parameter,
                 hits);
             }
 
-            // Due to v6
-            ++it_number;
-          } else {
-            // Condition 1: "10"
-            // Reconstructs a single cluster
-            const int condition_1 = 0x02;
-
+            //add the last edge
             store_sorted_cluster_reference_v6 (
               hit_count,
               correctedMat,
@@ -185,10 +146,27 @@ __global__ void scifi_pre_decode_v6(
               i,
               it_number,
               condition_1,
-              0x00,
+              condition_2,
+              0,//delta_parameter,
+              hits);
+          } else {
+            // Condition 2: "1"
+            const int condition_2 = 0x01;
+            store_sorted_cluster_reference_v6 (
+              hit_count,
+              correctedMat,
+              ch,
+              (uint32_t*) &shared_mat_offsets[it_number],
+              i,
+              it_number,
+              condition_1,
+              condition_2,
               0x00,
               hits);
           }
+
+          // Due to v6
+          ++it_number;
         }
       }
     }
