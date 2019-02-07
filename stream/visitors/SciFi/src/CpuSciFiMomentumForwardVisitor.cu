@@ -1,10 +1,11 @@
 #include "SequenceVisitor.cuh"
 #include "RunForwardCPU.h"
+#include "RunMomentumForwardCPU.h"
 #include "Tools.h"
 
 template<> 
-void SequenceVisitor::set_arguments_size<cpu_scifi_pr_forward_t>(
-  cpu_scifi_pr_forward_t::arguments_t arguments,
+void SequenceVisitor::set_arguments_size<cpu_scifi_momentum_forward_t>(
+  cpu_scifi_momentum_forward_t::arguments_t arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   const HostBuffers& host_buffers)
@@ -14,9 +15,9 @@ void SequenceVisitor::set_arguments_size<cpu_scifi_pr_forward_t>(
 }
 
 template<>
-void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
-  cpu_scifi_pr_forward_t& state,
-  const cpu_scifi_pr_forward_t::arguments_t& arguments,
+void SequenceVisitor::visit<cpu_scifi_momentum_forward_t>(
+  cpu_scifi_momentum_forward_t& state,
+  const cpu_scifi_momentum_forward_t::arguments_t& arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   HostBuffers& host_buffers,
@@ -32,17 +33,19 @@ void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
   // need: 2*host_buffers.host_number_of_selected_events[0]*...
   host_buffers.host_velo_states.resize(arguments.size<dev_velo_states>());
 
-  cudaCheck(cudaMemcpy(
+  cudaCheck(cudaMemcpyAsync(
     host_buffers.host_scifi_hits.data(),
     arguments.offset<dev_scifi_hits>(),
     arguments.size<dev_scifi_hits>(),
-    cudaMemcpyDeviceToHost));
+    cudaMemcpyDeviceToHost,
+    cuda_stream));
 
-  cudaCheck(cudaMemcpy(
+  cudaCheck(cudaMemcpyAsync(
     host_buffers.host_scifi_hit_count.data(),
     arguments.offset<dev_scifi_hit_count>(),
     arguments.size<dev_scifi_hit_count>(),
-    cudaMemcpyDeviceToHost));
+    cudaMemcpyDeviceToHost,
+    cuda_stream));
 
   cudaCheck(cudaMemcpy(
     host_buffers.host_velo_states.data(),
@@ -50,7 +53,6 @@ void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
     arguments.size<dev_velo_states>(),
     cudaMemcpyDeviceToHost));
 
-  // TODO: Maybe use this rv somewhere?
   int rv = state.invoke(
     host_buffers.scifi_tracks_events.data(),
     host_buffers.host_atomics_scifi,
@@ -64,22 +66,31 @@ void SequenceVisitor::visit<cpu_scifi_pr_forward_t>(
     host_buffers.host_atomics_ut,
     host_buffers.host_ut_track_hit_number,
     host_buffers.host_ut_qop,
+    host_buffers.host_ut_x,
+    host_buffers.host_ut_tx,
+    host_buffers.host_ut_z,
     host_buffers.host_ut_track_velo_indices,
     host_buffers.host_number_of_selected_events[0]);
- 
+
   for ( int i = 0; i < host_buffers.host_number_of_selected_events[0]; ++i ) 
     debug_cout << "Visitor: found " << host_buffers.host_atomics_scifi[i] << " tracks in event " << i << std::endl;
-
-  // copy SciFi track to device for consolidation
-  cudaCheck(cudaMemcpy(
+  
+  // copy SciFi tracks to device for consolidation
+  cudaCheck(cudaMemcpyAsync(
     arguments.offset<dev_atomics_scifi>(), 
     host_buffers.host_atomics_scifi,
     arguments.size<dev_atomics_scifi>(),
-    cudaMemcpyHostToDevice));
+    cudaMemcpyHostToDevice, 
+    cuda_stream));
 
-  cudaCheck(cudaMemcpy(
+  cudaCheck(cudaMemcpyAsync(
     arguments.offset<dev_scifi_tracks>(),
     host_buffers.scifi_tracks_events.data(),
     arguments.size<dev_scifi_tracks>(),
-    cudaMemcpyHostToDevice));
+    cudaMemcpyHostToDevice,
+    cuda_stream));
+  
+  cudaEventRecord(cuda_generic_event, cuda_stream);
+  cudaEventSynchronize(cuda_generic_event);
+  
 }
