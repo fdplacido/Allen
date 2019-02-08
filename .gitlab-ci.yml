@@ -16,7 +16,7 @@ performance:
   image: docker:git
   script:
   - mkdir results
-  - echo "lol" > result/performance.json
+  - echo "lol" > results/performance.json
   artifacts:
     paths:
       - results
