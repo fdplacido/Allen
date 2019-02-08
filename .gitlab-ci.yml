@@ -1,0 +1,8 @@
+compile:
+  image: nvidia/cuda:10.0-devel-ubuntu18.04
+  script:
+  - apt-get update -q -y && apt-get install -y -q zlib1g-dev
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
