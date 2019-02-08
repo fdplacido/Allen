@@ -11,3 +11,15 @@ compile:
   - cd build
   - cmake ..
   - make
+
+performance:
+  image: docker:git
+  script:
+  - mkdir results
+  - echo "lol" > result/performance.json
+  artifacts:
+    paths:
+      - results
+    reports:
+      performance: performance.json
+      
