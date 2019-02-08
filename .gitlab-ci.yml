@@ -15,7 +15,9 @@ compile:
 performance:
   image: docker:git
   script:
-    - echo "{speed:very fast}" > performance.json
+    - echo "{\"speed\":\"very fast\"}" > performance.json
   artifacts:
     paths: [performance.json]
+    reports:
+      performance: performance.json
       
