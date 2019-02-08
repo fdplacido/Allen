@@ -17,6 +17,5 @@ performance:
   script:
     - echo "{speed:very fast}" > performance.json
   artifacts:
-    reports:
-      performance: performance.json
+    paths: performance.json
       
