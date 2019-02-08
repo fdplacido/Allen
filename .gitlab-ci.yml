@@ -18,6 +18,4 @@ performance:
     - echo "{\"speed\":\"very fast\"}" > performance.json
   artifacts:
     paths: [performance.json]
-    reports:
-      performance: performance.json
       
