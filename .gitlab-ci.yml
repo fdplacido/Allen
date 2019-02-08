@@ -15,11 +15,8 @@ compile:
 performance:
   image: docker:git
   script:
-  - mkdir results
-  - echo "lol" > results/performance.json
+  - echo "\{speed:very fast\}" > performance.json
   artifacts:
-    paths:
-      - results
     reports:
       performance: performance.json
       
