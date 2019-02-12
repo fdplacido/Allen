@@ -34,9 +34,6 @@ __global__ void scifi_direct_decoder_v4(
   const SciFi::HitCount hit_count {scifi_hit_count, event_number};
 
   for (uint i = threadIdx.x; i < SciFi::Constants::n_consecutive_raw_banks; i += blockDim.x) {
-    const uint j = (i / 10) % 4;
-    const bool reverse_cluster_order = j == 1 | j == 2;
-
     const uint k = i % 10;
     const bool reverse_raw_bank_order = k < 5;
     const uint current_raw_bank = reverse_raw_bank_order ?
