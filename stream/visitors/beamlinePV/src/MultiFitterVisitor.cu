@@ -41,6 +41,7 @@ void SequenceVisitor::visit<pv_beamline_multi_fitter_t>(
 
   state.invoke();
 
+/*
   // Retrieve result
   cudaCheck(cudaMemcpyAsync(
     host_buffers.host_reconstructed_multi_pvs,
@@ -59,4 +60,5 @@ void SequenceVisitor::visit<pv_beamline_multi_fitter_t>(
   // Wait to receive the result
   cudaEventRecord(cuda_generic_event, cuda_stream);
   cudaEventSynchronize(cuda_generic_event);
+  */
 }
