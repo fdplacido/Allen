@@ -7,12 +7,12 @@ __global__ void scifi_calculate_cluster_count_v5(
   uint* scifi_raw_input_offsets,
   const uint* event_list,
   uint* scifi_hit_count,
-  char* scifi_geometry
-) {
+  char* scifi_geometry)
+{
   const uint event_number = blockIdx.x;
   const uint selected_event_number = event_list[event_number];
 
-  const SciFiRawEvent event(scifi_raw_input + scifi_raw_input_offsets[selected_event_number]); 
+  const SciFiRawEvent event(scifi_raw_input + scifi_raw_input_offsets[selected_event_number]);
   const SciFiGeometry geom(scifi_geometry);
   SciFi::HitCount hit_count {scifi_hit_count, event_number};
 
@@ -31,9 +31,9 @@ __global__ void scifi_calculate_cluster_count_v5(
     uint16_t* it = rawbank.data + 2;
     uint16_t* last = rawbank.last;
 
-    //For details see RawBankDecoder
-    if (*(last-1) == 0) --last; //Remove phadding at the end
-    for( ;  it < last; ++it ){ // loop over the clusters
+    // For details see RawBankDecoder
+    if (*(last - 1) == 0) --last; // Remove phadding at the end
+    for (; it < last; ++it) {     // loop over the clusters
       uint16_t c = *it;
       uint32_t ch = geom.bank_first_channel[rawbank.sourceID] + channelInBank(c);
       if(current_raw_bank < SciFi::Constants::n_consecutive_raw_banks)
@@ -48,7 +48,8 @@ __global__ void scifi_calculate_cluster_count_v5(
           unsigned int delta = (cell(c2) - cell(c));
           atomicAdd(hits_module, 1 + (delta - 1) / SciFiRawBankParams::clusterMaxWidth);
           ++it;
-        } else {
+        }
+        else {
           atomicAdd(hits_module, 1);
         }
       }
