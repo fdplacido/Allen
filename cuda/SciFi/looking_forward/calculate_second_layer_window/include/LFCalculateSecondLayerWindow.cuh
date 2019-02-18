@@ -2,7 +2,7 @@
 
 #include "LookingForwardConstants.cuh"
 #include "LookingForwardTools.cuh"
-#include "LFCalculateFirstLayerWindowImpl.cuh"
+#include "LFCalculateSecondLayerWindowImpl.cuh"
 #include "VeloConsolidated.cuh"
 #include "UTConsolidated.cuh"
 #include "SciFiEventModel.cuh"
@@ -11,7 +11,7 @@
 #include "ArgumentsUT.cuh"
 #include "ArgumentsSciFi.cuh"
 
-__global__ void lf_calculate_first_layer_window(
+__global__ void lf_calculate_second_layer_window(
   uint32_t* dev_scifi_hits,
   const uint32_t* dev_scifi_hit_count,
   const int* dev_atomics_velo,
@@ -29,11 +29,13 @@ __global__ void lf_calculate_first_layer_window(
   const LookingForward::Constants* dev_looking_forward_constants,
   const float* dev_inv_clus_res,
   uint* dev_first_layer_candidates,
-  const int seeding_first_layer);
+  unsigned short* dev_second_layer_candidates,
+  const int seeding_first_layer,
+  const int seeding_second_layer);
 
 ALGORITHM(
-  lf_calculate_first_layer_window,
-  lf_calculate_first_layer_window_t,
+  lf_calculate_second_layer_window,
+  lf_calculate_second_layer_window_t,
   ARGUMENTS(
     dev_scifi_hits,
     dev_scifi_hit_count,
@@ -48,4 +50,5 @@ ALGORITHM(
     dev_ut_tx,
     dev_ut_qop,
     dev_ut_track_velo_indices,
-    dev_scifi_lf_first_layer_candidates))
+    dev_scifi_lf_first_layer_candidates,
+    dev_scifi_lf_second_layer_candidates))
