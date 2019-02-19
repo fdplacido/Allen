@@ -33,8 +33,7 @@ __global__ void scifi_calculate_cluster_count_v6(
       if(i < SciFi::Constants::n_consecutive_raw_banks)
         hits_mat = hit_count.mat_offsets + i;
       else
-        hits_mat = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat() -
-          SciFi::Constants::n_consecutive_raw_banks * (SciFi::Constants::n_mats_per_consec_raw_bank - 1);
+        hits_mat = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat() - SciFi::Constants::mat_index_substract;
       if( !cSize(c) ) {  //Not flagged as large
         atomicAdd(hits_mat, 1);
       } else if( fraction(c) ) { // flagged as first edge of large cluster

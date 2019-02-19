@@ -39,7 +39,7 @@ __global__ void scifi_calculate_cluster_count_v5(
       if(current_raw_bank < SciFi::Constants::n_consecutive_raw_banks)
         hits_module = hit_count.mat_offsets + i;
       else
-        hits_module = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat() - SciFi::Constants::mat_index_subtract;
+        hits_module = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat() - SciFi::Constants::mat_index_substract;
       if( !cSize(c) || it+1 == last ) { //No size flag or last cluster
         atomicAdd(hits_module, 1);
       } else { //Flagged or not the last one.

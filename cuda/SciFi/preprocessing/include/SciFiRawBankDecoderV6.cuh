@@ -3,6 +3,8 @@
 #include "SciFiDefinitions.cuh"
 #include "SciFiEventModel.cuh"
 #include "Handler.cuh"
+#include "ArgumentsCommon.cuh"
+#include "ArgumentsSciFi.cuh"
 
 __device__ void make_cluster_v6 (
   const int hit_index,
@@ -15,12 +17,15 @@ __device__ void make_cluster_v6 (
   SciFi::Hits& hits);
 
 __global__ void scifi_raw_bank_decoder_v6(
-  char *scifi_events,
-  uint *scifi_event_offsets,
-  const uint *event_list,
-  uint *scifi_hit_count,
-  uint *scifi_hits,
-  char *scifi_geometry,
+  char* scifi_events,
+  uint* scifi_event_offsets,
+  const uint* event_list,
+  uint* scifi_hit_count,
+  uint* scifi_hits,
+  char* scifi_geometry,
   const float* dev_inv_clus_res);
 
-ALGORITHM(scifi_raw_bank_decoder_v6, scifi_raw_bank_decoder_v6_t)
+ALGORITHM(
+  scifi_raw_bank_decoder_v6,
+  scifi_raw_bank_decoder_v6_t,
+  ARGUMENTS(dev_scifi_raw_input, dev_scifi_raw_input_offsets, dev_scifi_hit_count, dev_scifi_hits, dev_event_list))

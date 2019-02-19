@@ -14,7 +14,7 @@ void SequenceVisitor::set_arguments_size<scifi_raw_bank_decoder_v6_t>(
 template<>
 void SequenceVisitor::visit<scifi_raw_bank_decoder_v6_t>(
   scifi_raw_bank_decoder_v6_t& state,
-  const scifi_raw_bank_decoder_v5_t::arguments_t& arguments,
+  const scifi_raw_bank_decoder_v6_t::arguments_t& arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   HostBuffers& host_buffers,
@@ -31,7 +31,7 @@ void SequenceVisitor::visit<scifi_raw_bank_decoder_v6_t>(
     constants.dev_scifi_geometry,
     constants.dev_inv_clus_res);
 
-  //state.invoke();
+  state.invoke();
 
   // SciFi Decoder Debugging
   /*const uint hit_count_uints = 2 * host_buffers.host_number_of_selected_events[0] * SciFi::Constants::n_mats + 1;
