@@ -221,7 +221,7 @@ namespace {
       vertex.setCovMatrix(vtxcov);
       for (int i = 0; i < number_of_tracks; i++) {
         PVTrackInVertex trk = tracks[i];
-        if (trk.weight > 0) vertex.n_tracks++;
+        if (trk.weight > 0) vertex.nTracks++;
       }
       vertices[i_thisseed] = vertex;
     }
@@ -351,7 +351,7 @@ namespace {
     vertex.setCovMatrix(vtxcov);
     for (int i = 0; i < number_of_tracks; i++) {
       PVTrackInVertex trk = tracks[i];
-      if (trk.weight > 0) vertex.n_tracks++;
+      if (trk.weight > 0) vertex.nTracks++;
     }
     return vertex;
   }
@@ -766,7 +766,7 @@ void findPVs(
 
        for ( int i = 0; i < number_preselected_vertices; i++ ) {
          PV::Vertex vertex = preselected_vertices[i];
-         debug_cout << "   vertex has " << vertex.n_tracks << " tracks, x = " << vertex.position.x << ", y = " <<
+         debug_cout << "   vertex has " << vertex.nTracks << " tracks, x = " << vertex.position.x << ", y = " <<
        vertex.position.y << ", z = " << vertex.position.z << std::endl;
        }
    */
@@ -788,7 +788,7 @@ void findPVs(
       h_vy[event_number]->Fill(vertex.position.y);
       h_vz[event_number]->Fill(vertex.position.z);
 #endif
-      if (vertex.n_tracks >= minNumTracksPerVertex && beamlinerho2 < maxVertexRho2) {
+      if (vertex.nTracks >= minNumTracksPerVertex && beamlinerho2 < maxVertexRho2) {
         reconstructed_pvs[PV::max_number_vertices * event_number + n_pvs++] = vertex;
       }
     }
