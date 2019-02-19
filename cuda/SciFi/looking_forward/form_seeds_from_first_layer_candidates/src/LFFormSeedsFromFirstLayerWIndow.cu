@@ -1,6 +1,6 @@
-#include "LFFormSeedsFromCandidates.cuh"
+#include "LFCalculateSecondLayerWindow.cuh"
 
-__global__ void lf_form_seeds_from_candidates(
+__global__ void lf_form_seeds_from_first_layer_window(
   uint32_t* dev_scifi_hits,
   const uint32_t* dev_scifi_hit_count,
   const int* dev_atomics_velo,
@@ -19,17 +19,11 @@ __global__ void lf_form_seeds_from_candidates(
   const char* dev_scifi_geometry,
   const LookingForward::Constants* dev_looking_forward_constants,
   const float* dev_inv_clus_res,
-  const uint* dev_first_layer_candidates,
-  const unsigned short* dev_second_layer_candidates,
-  const uint station)
+  uint* dev_first_layer_candidates,
+  const int station)
 {
   const auto number_of_events = gridDim.x;
   const auto event_number = blockIdx.x;
-
-  __shared__ char shared_track_candidates
-    [LookingForward::form_seeds_candidates_per_thread *
-     LookingForward::form_seeds_x_threads *
-     sizeof(SciFi::TrackCandidate)];
 
   // Velo consolidated types
   const Velo::Consolidated::Tracks velo_tracks {
@@ -51,42 +45,31 @@ __global__ void lf_form_seeds_from_candidates(
   const uint total_number_of_hits = dev_scifi_hit_count[number_of_events * SciFi::Constants::n_mat_groups_and_mats];
   const SciFi::HitCount scifi_hit_count {(uint32_t*) dev_scifi_hit_count, event_number};
   const SciFi::SciFiGeometry scifi_geometry {dev_scifi_geometry};
-  SciFi::Hits scifi_hits(dev_scifi_hits, total_number_of_hits, &scifi_geometry, dev_inv_clus_res);
+  const SciFi::Hits scifi_hits {dev_scifi_hits, total_number_of_hits, &scifi_geometry, dev_inv_clus_res};
 
   // SciFi un-consolidated track types
   SciFi::TrackCandidate* scifi_track_candidates = dev_scifi_track_candidates + event_number * SciFi::Constants::max_track_candidates;
   int* atomics_scifi = dev_atomics_scifi + event_number;
 
-  // Looking Forward offset and size of this event
+  // Looking Forward first layer window parameters
+  const uint* first_candidate_start = dev_first_layer_candidates + ut_event_tracks_offset;
   const uint* offset_size_first_candidate_pointer = dev_first_layer_candidates + ut_event_tracks_offset + ut_tracks.total_number_of_tracks;
-  const uint offset_first_candidate = *offset_size_first_candidate_pointer;
-  const uint size_first_candidate = *(offset_size_first_candidate_pointer + ut_event_number_of_tracks) - offset_first_candidate;
   const uint total_number_of_candidates = *(dev_first_layer_candidates + 2 * ut_tracks.total_number_of_tracks);
 
-  // Only proceed if we have candidates in the first window
-  if (size_first_candidate > 0) {
-    const unsigned short* second_candidate_ut_track_p = dev_second_layer_candidates + offset_first_candidate;
-    const unsigned short* second_candidate_first_candidate_p = dev_second_layer_candidates + total_number_of_candidates + offset_first_candidate;
-    const unsigned short* second_candidate_start_p = dev_second_layer_candidates + 2 * total_number_of_candidates + offset_first_candidate;
-    const unsigned short* second_candidate_size_p = dev_second_layer_candidates + 3 * total_number_of_candidates + offset_first_candidate;
-    const unsigned short* second_candidate_l1_start_p = dev_second_layer_candidates + 4 * total_number_of_candidates + offset_first_candidate;
-    const unsigned short* second_candidate_l1_size_p  = dev_second_layer_candidates + 5 * total_number_of_candidates + offset_first_candidate;
-    const unsigned short* second_candidate_l2_start_p = dev_second_layer_candidates + 6 * total_number_of_candidates + offset_first_candidate;
-    const unsigned short* second_candidate_l2_size_p  = dev_second_layer_candidates + 7 * total_number_of_candidates + offset_first_candidate;
+  // Layers from configured station
+  const auto seeding_first_layer = 4*(station-1);
+  const auto seeding_second_layer = seeding_first_layer + 3;
 
-    for (int i=threadIdx.x; i<size_first_candidate; i+=blockDim.x) {
-      const auto rel_ut_track_index = second_candidate_ut_track_p[i];
-      const auto first_candidate_index = second_candidate_first_candidate_p[i];
-      const auto second_candidate_offset = second_candidate_start_p[i];
-      const auto second_candidate_size = second_candidate_size_p[i];
-      const auto second_candidate_l1_start = second_candidate_l1_start_p[i];
-      const auto second_candidate_l1_size = second_candidate_l1_size_p[i];
-      const auto second_candidate_l2_start = second_candidate_l2_start_p[i];
-      const auto second_candidate_l2_size = second_candidate_l2_size_p[i];
+  // Loop over the veloUT input tracks
+  for (int i=threadIdx.x; i<ut_event_number_of_tracks; i+=blockDim.x) {
+    const uint local_hit_offset_first_candidate = first_candidate_start[i];
+    const uint offset_first_candidate = offset_size_first_candidate_pointer[i];
+    const uint size_first_candidate = offset_size_first_candidate_pointer[i + 1] - offset_size_first_candidate_pointer[i];
 
-      const int ut_track_index = ut_event_tracks_offset + rel_ut_track_index;
-      const int velo_track_index = ut_tracks.velo_track[rel_ut_track_index];
-      const float ut_qop = ut_tracks.qop[rel_ut_track_index];
+    if (size_first_candidate > 0) {
+      const int ut_track_index = ut_event_tracks_offset + i;
+      const int velo_track_index = ut_tracks.velo_track[i];
+      const float ut_qop = ut_tracks.qop[i];
 
       // Note: These data should be accessed like
       //       the previous ut_tracks.qop[i] in the future
@@ -102,24 +85,19 @@ __global__ void lf_form_seeds_from_candidates(
       const MiniState ut_state {ut_x, LookingForward::y_at_z(velo_state, ut_z), ut_z, ut_tx, velo_state.ty};
       const MiniState state_at_z_last_ut_plane = LookingForward::state_at_z(ut_state, LookingForward::z_last_UT_plane);
 
-      lf_form_seeds_from_candidates_impl(
+      lf_form_seeds_from_first_layer_window_impl(
         state_at_z_last_ut_plane,
         ut_qop,
-        rel_ut_track_index,
         scifi_hits,
         scifi_hit_count,
-        station,
+        seeding_first_layer,
+        seeding_second_layer,
         dev_looking_forward_constants,
+        i,
+        local_hit_offset_first_candidate,
+        size_first_candidate,
         atomics_scifi,
-        scifi_track_candidates,
-        first_candidate_index,
-        second_candidate_offset,
-        second_candidate_size,
-        second_candidate_l1_start,
-        second_candidate_l1_size,
-        second_candidate_l2_start,
-        second_candidate_l2_size,
-        (SciFi::TrackCandidate*) shared_track_candidates);
+        scifi_track_candidates);
     }
   }
 }
