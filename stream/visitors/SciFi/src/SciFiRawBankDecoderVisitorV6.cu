@@ -3,21 +3,20 @@
 
 template<>
 void SequenceVisitor::set_arguments_size<scifi_raw_bank_decoder_v6_t>(
+  scifi_raw_bank_decoder_v6_t::arguments_t arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
-  const HostBuffers& host_buffers,
-  argument_manager_t& arguments)
+  const HostBuffers& host_buffers)
 {
   arguments.set_size<dev_scifi_hits>(host_buffers.scifi_hits_uints());
 }
 
-
 template<>
 void SequenceVisitor::visit<scifi_raw_bank_decoder_v6_t>(
   scifi_raw_bank_decoder_v6_t& state,
+  const scifi_raw_bank_decoder_v5_t::arguments_t& arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
-  argument_manager_t& arguments,
   HostBuffers& host_buffers,
   cudaStream_t& cuda_stream,
   cudaEvent_t& cuda_generic_event)
@@ -30,8 +29,7 @@ void SequenceVisitor::visit<scifi_raw_bank_decoder_v6_t>(
     arguments.offset<dev_scifi_hit_count>(),
     arguments.offset<dev_scifi_hits>(),
     constants.dev_scifi_geometry,
-    constants.dev_inv_clus_res
-  );
+    constants.dev_inv_clus_res);
 
   //state.invoke();
 
