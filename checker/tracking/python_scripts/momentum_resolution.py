@@ -21,7 +21,7 @@ from array import array
 from LHCbStyle import *
 
 def getTrackers() :
-    return ["Upstream", "Forward"]
+    return ["Upstream"]#, "Forward"]
 
 
 f = ROOT.TFile.Open("../../../output/PrCheckerPlots.root", "read")
@@ -57,6 +57,8 @@ for tracker in trackers :
                 g1 = ROOT.TF1("g1","gaus",-0.05,0.05);
             elif tracker == "Upstream" :
                 g1 = ROOT.TF1("g1","gaus",-0.5,0.5);
+            histo1D.GetYaxis().SetTitle("Entries")
+            histo1D.GetXaxis().SetTitle("Resolution (%/100)")
             histo1D.Fit(g1,"R")
             histo1D.Write()
             p = xAxis.GetBinCenter(i)
@@ -93,6 +95,7 @@ for tracker in trackers :
     
     gr.Write()
     canvas.Write()
+    canvas.SaveAs("../../../plotsfornote/"+tracker+"MomResVsP.pdf")
 
     #name = "dp_vs_p_rms"
     #title = "dp vs p, histogram RMS"

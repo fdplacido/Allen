@@ -30,7 +30,7 @@ def getEfficiencyHistoNames() :
     return ["eta", "p", "pt", "phi", "nPV"]
     
 def getTrackers() :
-    return ["Velo", "Upstream", "Forward"]
+    return ["Velo", "Upstream"]#, "Forward"]
     
 def getGhostHistoNames() :
     #return ["eta", "nPV"] # currently no eta information available from track
@@ -117,6 +117,8 @@ for tracker in trackers :
             if categories[tracker][cut]["plotElectrons"] :
                 canvas.PlaceLegend()
             canvas.Write()
+            cleantitle = categories[tracker][cut]["title"].replace(" ","").replace(",","_").replace("<","_")
+            canvas.SaveAs("../../../plotsfornote/"+tracker+"Eff"+histo+cleantitle+".pdf") 
 
     # calculate ghost rate
     histoBaseName = tracker + "/"
@@ -142,6 +144,7 @@ for tracker in trackers :
         g_efficiency.Draw("ap")
         
         canvas.Write()
+        canvas.SaveAs("../../../plotsfornote/"+tracker+"GhostRate.pdf")
 
 outputfile.Write()
 outputfile.Close()
