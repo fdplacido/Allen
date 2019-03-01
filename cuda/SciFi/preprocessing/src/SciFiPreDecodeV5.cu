@@ -16,22 +16,22 @@ __device__ void store_sorted_cluster_reference_v5(
   const int delta,
   SciFi::Hits& hits)
 {
-  uint32_t hitIndex = (*shared_mat_count)++;
   uint32_t uniqueGroupOrMat;
 
   // adaptation to hybrid decoding
-  if(uniqueMat > SciFi::Constants::n_consecutive_raw_banks * SciFi::Constants::n_mats_per_consec_raw_bank)
+  if(uniqueMat < SciFi::Constants::n_consecutive_raw_banks * SciFi::Constants::n_mats_per_consec_raw_bank)
     uniqueGroupOrMat = uniqueMat / SciFi::Constants::n_mats_per_consec_raw_bank;
   else
     uniqueGroupOrMat = uniqueMat - SciFi::Constants::mat_index_substract;
 
+  uint32_t hitIndex = (*(shared_mat_count + uniqueGroupOrMat))++;
+  
   const SciFi::SciFiChannelID id {chan};
   if (id.reversedZone()) {
     hitIndex = hit_count.mat_group_or_mat_number_of_hits(uniqueGroupOrMat) - 1 - hitIndex;
   }
-
   assert(hitIndex < hit_count.mat_group_or_mat_number_of_hits(uniqueGroupOrMat));
-  hitIndex += *shared_mat_offset;
+  hitIndex += *(shared_mat_offset + uniqueGroupOrMat); 
 
   // Cluster reference:
   //   raw bank: 8 bits
@@ -104,8 +104,8 @@ __global__ void scifi_pre_decode_v5(
             hit_count,
             correctedMat,
             ch,
-            shared_mat_offsets + it_number,
-            shared_mat_count + it_number,
+            shared_mat_offsets,
+            shared_mat_count,
             current_raw_bank,
             it_number,
             condition_1, // Condition 1
@@ -132,8 +132,8 @@ __global__ void scifi_pre_decode_v5(
                   hit_count,
                   correctedMat,
                   ch,
-                  shared_mat_offsets + it_number,
-                  shared_mat_count + it_number,
+                  shared_mat_offsets,
+                  shared_mat_count,
                   current_raw_bank,
                   it_number,
                   condition_1,
@@ -148,8 +148,8 @@ __global__ void scifi_pre_decode_v5(
                 hit_count,
                 correctedMat,
                 ch,
-                shared_mat_offsets + it_number,
-                shared_mat_count + it_number,
+                shared_mat_offsets,
+                shared_mat_count,
                 current_raw_bank,
                 it_number,
                 condition_1,
@@ -166,8 +166,8 @@ __global__ void scifi_pre_decode_v5(
                 hit_count,
                 correctedMat,
                 ch,
-                shared_mat_offsets + it_number,
-                shared_mat_count + it_number,
+                shared_mat_offsets,
+                shared_mat_count,
                 current_raw_bank,
                 it_number,
                 condition_1,
@@ -188,8 +188,8 @@ __global__ void scifi_pre_decode_v5(
               hit_count,
               correctedMat,
               ch,
-              shared_mat_offsets + it_number,
-              shared_mat_count + it_number,
+              shared_mat_offsets,
+              shared_mat_count,
               current_raw_bank,
               it_number,
               condition_1,
