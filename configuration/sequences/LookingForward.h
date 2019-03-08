@@ -40,19 +40,4 @@ SEQUENCE_T(
 
   lf_search_initial_windows_t,
   lf_collect_candidates_t,
-
-  // lf_calculate_first_layer_window_t,
-  // lf_prefix_sum_first_layer_window_size_t,
-  // lf_calculate_second_layer_window_t,
-  // lf_form_seeds_from_candidates_t,
-  // lf_calculate_candidate_extrapolation_window_t,
-  // lf_promote_candidates_t,
-  // lf_calculate_track_extrapolation_window_t,
-  // lf_extend_tracks_t,
-
-  cpu_scifi_momentum_forward_t,
-  // copy_and_prefix_sum_single_block_scifi_t,
-  // copy_scifi_track_hit_number_t,
-  // prefix_sum_scifi_track_hit_number_t,
-  // consolidate_scifi_tracks_t
 )
