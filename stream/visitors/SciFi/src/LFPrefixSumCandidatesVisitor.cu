@@ -1,52 +1,55 @@
-#include "LFCollectCandidates.cuh"
+#include "PrefixSumHandler.cuh"
 #include "SequenceVisitor.cuh"
 
 template<>
-void SequenceVisitor::set_arguments_size<lf_collect_candidates_t>(
-  lf_collect_candidates_t::arguments_t arguments,
+void SequenceVisitor::set_arguments_size<lf_prefix_sum_candidates_t>(
+  lf_prefix_sum_candidates_t::arguments_t arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   const HostBuffers& host_buffers)
 {
-  arguments.set_size<dev_scifi_lf_number_of_candidates>(
-    host_buffers.host_atomics_ut[host_buffers.host_number_of_selected_events[0] * 2]
-    * LookingForward::number_of_x_layers
-    + 1);
-
-  arguments.set_size<dev_scifi_lf_candidates>(
-    host_buffers.host_atomics_ut[host_buffers.host_number_of_selected_events[0] * 2]
-    * SciFi::Tracking::zoneoffsetpar
-    * LookingForward::maximum_number_of_candidates);
+  arguments.set_size<dev_prefix_sum_auxiliary_array_7>(
+    lf_prefix_sum_candidates_t::aux_array_size(arguments.size<dev_scifi_lf_number_of_candidates>() /
+        sizeof(dev_scifi_lf_number_of_candidates::type)));
 }
 
 template<>
-void SequenceVisitor::visit<lf_collect_candidates_t>(
-  lf_collect_candidates_t& state,
-  const lf_collect_candidates_t::arguments_t& arguments,
+void SequenceVisitor::visit<lf_prefix_sum_candidates_t>(
+  lf_prefix_sum_candidates_t& state,
+  const lf_prefix_sum_candidates_t::arguments_t& arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   HostBuffers& host_buffers,
   cudaStream_t& cuda_stream,
   cudaEvent_t& cuda_generic_event)
 {
-  cudaCheck(cudaMemsetAsync(
+  const auto number_of_ut_tracks = host_buffers.host_atomics_ut[2 * host_buffers.host_number_of_selected_events[0]];
+
+  // Set size of the main array to be prefix summed
+  state.set_size(number_of_ut_tracks * LookingForward::number_of_x_layers);
+
+  // Set the cuda_stream
+  state.set_opts(cuda_stream);
+
+  // Set arguments: Array to prefix sum and auxiliary array
+  state.set_arguments(
     arguments.offset<dev_scifi_lf_number_of_candidates>(),
-    0,
-    arguments.size<dev_scifi_lf_number_of_candidates>(),
+    arguments.offset<dev_prefix_sum_auxiliary_array_7>());
+
+  // Invoke all steps of prefix sum
+  state.invoke();
+
+  // Fetch total number of hits accumulated with all windows
+  cudaCheck(cudaMemcpyAsync(
+    host_buffers.host_lf_total_number_of_candidates,
+    arguments.offset<dev_scifi_lf_number_of_candidates>()
+    + number_of_ut_tracks * LookingForward::number_of_x_layers,
+    sizeof(int),
+    cudaMemcpyDeviceToHost,
     cuda_stream));
 
-  state.set_opts(dim3(host_buffers.host_number_of_selected_events[0]), dim3(64, 6), cuda_stream);
-  state.set_arguments(
-    arguments.offset<dev_scifi_hits>(),
-    arguments.offset<dev_scifi_hit_count>(),
-    arguments.offset<dev_atomics_ut>(),
-    constants.dev_scifi_geometry,
-    constants.dev_inv_clus_res,
-    arguments.offset<dev_scifi_lf_initial_windows>(),
-    arguments.offset<dev_scifi_lf_number_of_candidates>(),
-    arguments.offset<dev_scifi_lf_candidates>());
-
-  state.invoke();
+  cudaEventRecord(cuda_generic_event, cuda_stream);
+  cudaEventSynchronize(cuda_generic_event);
 
   // std::vector<int> number_of_candidates (arguments.size<dev_scifi_lf_number_of_candidates>() / sizeof(int));
 
@@ -63,7 +66,7 @@ void SequenceVisitor::visit<lf_collect_candidates_t>(
 
   //   info_cout << "Event #" << event_number << std::endl;
   //   for (size_t i=0; i<number_of_ut_tracks; ++i) {
-  //     info_cout << "Candidates #" << i << ": ";
+  //     info_cout << "Candidates track #" << i << ": ";
 
   //     for (int j=0; j<LookingForward::number_of_x_layers; ++j) {
   //       info_cout << number_of_candidates[(offset + i) * LookingForward::number_of_x_layers + j] << ", ";
