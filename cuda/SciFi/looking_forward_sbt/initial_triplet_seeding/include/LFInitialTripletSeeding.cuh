@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mma.h>
 #include "PrForwardConstants.cuh"
 #include "VeloConsolidated.cuh"
 #include "UTConsolidated.cuh"
@@ -13,7 +12,7 @@
 #include "LookingForwardConstants.cuh"
 #include "LookingForwardTools.cuh"
 
-__global__ void lf_triplet_seeding(
+__global__ void lf_initial_triplet_seeding(
   uint32_t* dev_scifi_hits,
   const uint32_t* dev_scifi_hit_count,
   const int* dev_atomics_ut,
@@ -26,13 +25,11 @@ __global__ void lf_triplet_seeding(
   const LookingForward::Constants* dev_looking_forward_constants,
   SciFi::TrackHits* dev_scifi_tracks,
   int* dev_atomics_scifi,
-  int* dev_scifi_lf_candidate_atomics,
-  const bool* dev_scifi_lf_candidates_flag,
   const uint8_t relative_middle_layer);
 
 ALGORITHM(
-  lf_triplet_seeding,
-  lf_triplet_seeding_t,
+  lf_initial_triplet_seeding,
+  lf_initial_triplet_seeding_t,
   ARGUMENTS(
     dev_scifi_hits,
     dev_scifi_hit_count,
@@ -43,5 +40,4 @@ ALGORITHM(
     dev_scifi_lf_candidates,
     dev_scifi_tracks,
     dev_atomics_scifi,
-    dev_scifi_lf_candidate_atomics,
     dev_scifi_lf_candidates_flag))
