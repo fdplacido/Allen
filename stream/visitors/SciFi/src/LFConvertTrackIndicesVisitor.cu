@@ -1,69 +1,48 @@
-#include "LFTripletSeeding.cuh"
+#include "LFConvertTrackIndices.cuh"
 #include "SequenceVisitor.cuh"
 
-template<>
-void SequenceVisitor::set_arguments_size<lf_triplet_seeding_t>(
-  lf_triplet_seeding_t::arguments_t arguments,
-  const RuntimeOptions& runtime_options,
-  const Constants& constants,
-  const HostBuffers& host_buffers)
-{
-  arguments.set_size<dev_scifi_lf_candidate_atomics>(3 * host_buffers.host_number_of_selected_events[0] * SciFi::Constants::max_tracks);
-}
+DEFINE_EMPTY_SET_ARGUMENTS_SIZE(lf_convert_track_indices_t)
 
 template<>
-void SequenceVisitor::visit<lf_triplet_seeding_t>(
-  lf_triplet_seeding_t& state,
-  const lf_triplet_seeding_t::arguments_t& arguments,
+void SequenceVisitor::visit<lf_convert_track_indices_t>(
+  lf_convert_track_indices_t& state,
+  const lf_convert_track_indices_t::arguments_t& arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   HostBuffers& host_buffers,
   cudaStream_t& cuda_stream,
   cudaEvent_t& cuda_generic_event)
 {
-  // Initialize atomics specific to triplet seeding to zero
-  cudaCheck(cudaMemsetAsync(
-    arguments.offset<dev_scifi_lf_candidate_atomics>(),
-    0,
-    arguments.size<dev_scifi_lf_candidate_atomics>(),
-    cuda_stream));
-  
-  state.set_opts(dim3(host_buffers.host_number_of_selected_events[0], 32), dim3(64), cuda_stream);
+  state.set_opts(dim3(host_buffers.host_number_of_selected_events[0]), dim3(256), cuda_stream);
   state.set_arguments(
     arguments.offset<dev_scifi_hits>(),
     arguments.offset<dev_scifi_hit_count>(),
     arguments.offset<dev_atomics_ut>(),
-    arguments.offset<dev_ut_qop>(),
-    arguments.offset<dev_ut_states>(),
+    arguments.offset<dev_scifi_tracks>(),
+    arguments.offset<dev_atomics_scifi>(),
     constants.dev_scifi_geometry,
     constants.dev_inv_clus_res,
     arguments.offset<dev_scifi_lf_number_of_candidates>(),
-    arguments.offset<dev_scifi_lf_candidates>(),
-    constants.dev_looking_forward_constants,
-    arguments.offset<dev_scifi_tracks>(),
+    arguments.offset<dev_scifi_lf_candidates>());
+
+  state.invoke();
+
+  cudaCheck(cudaMemcpyAsync(
+    host_buffers.host_atomics_scifi,
     arguments.offset<dev_atomics_scifi>(),
-    arguments.offset<dev_scifi_lf_candidate_atomics>(),
-    arguments.offset<dev_scifi_lf_candidates_flag>(),
-    2);
+    arguments.size<dev_atomics_scifi>(),
+    cudaMemcpyDeviceToHost,
+    cuda_stream));
 
-  // state.invoke();
+  cudaCheck(cudaMemcpyAsync(
+    host_buffers.host_scifi_tracks,
+    arguments.offset<dev_scifi_tracks>(),
+    arguments.size<dev_scifi_tracks>(),
+    cudaMemcpyDeviceToHost,
+    cuda_stream));
 
-  // cudaCheck(cudaMemcpyAsync(
-  //   host_buffers.host_atomics_scifi,
-  //   arguments.offset<dev_atomics_scifi>(),
-  //   arguments.size<dev_atomics_scifi>(),
-  //   cudaMemcpyDeviceToHost,
-  //   cuda_stream));
-
-  // cudaCheck(cudaMemcpyAsync(
-  //   host_buffers.host_scifi_tracks,
-  //   arguments.offset<dev_scifi_tracks>(),
-  //   arguments.size<dev_scifi_tracks>(),
-  //   cudaMemcpyDeviceToHost,
-  //   cuda_stream));
-
-  // cudaEventRecord(cuda_generic_event, cuda_stream);
-  // cudaEventSynchronize(cuda_generic_event);
+  cudaEventRecord(cuda_generic_event, cuda_stream);
+  cudaEventSynchronize(cuda_generic_event);
 
   // for (uint i=0; i<host_buffers.host_number_of_selected_events[0]; ++i) {
   //   const auto number_of_tracks = scifi_atomics[i];
