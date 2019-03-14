@@ -17,22 +17,22 @@ __device__ void store_sorted_cluster_reference_v5(
   SciFi::Hits& hits)
 {
   uint32_t uniqueGroupOrMat;
-
   // adaptation to hybrid decoding
+  //printf("%u ", uniqueMat);
   if(uniqueMat < SciFi::Constants::n_consecutive_raw_banks * SciFi::Constants::n_mats_per_consec_raw_bank)
     uniqueGroupOrMat = uniqueMat / SciFi::Constants::n_mats_per_consec_raw_bank;
   else
     uniqueGroupOrMat = uniqueMat - SciFi::Constants::mat_index_substract;
 
-  uint32_t hitIndex = (*(shared_mat_count + uniqueGroupOrMat))++;
+  uint32_t hitIndex = shared_mat_count[uniqueGroupOrMat]++;
   
   const SciFi::SciFiChannelID id {chan};
   if (id.reversedZone()) {
     hitIndex = hit_count.mat_group_or_mat_number_of_hits(uniqueGroupOrMat) - 1 - hitIndex;
   }
   assert(hitIndex < hit_count.mat_group_or_mat_number_of_hits(uniqueGroupOrMat));
-  hitIndex += *(shared_mat_offset + uniqueGroupOrMat); 
-
+  assert(uniqueGroupOrMat < SciFi::Constants::n_mat_groups_and_mats);
+  hitIndex += hit_count.mat_offsets[uniqueGroupOrMat]; //does not work when using shared_mat_offsets[uniqueGroupOrMat]
   // Cluster reference:
   //   raw bank: 8 bits
   //   element (it): 8 bits
@@ -85,65 +85,51 @@ __global__ void scifi_pre_decode_v5(
     uint16_t* last = rawbank.last;
     if (*(last - 1) == 0) --last; // Remove padding at the end
 
-    if (starting_it < last) {
-      const uint number_of_iterations = last - starting_it;
-      //loop over hits in a raw bank
-      for (uint it_number = 0; it_number < number_of_iterations; ++it_number){
-        auto it = starting_it + it_number;
-        const uint16_t c = *it;
-        const uint32_t ch = geom.bank_first_channel[rawbank.sourceID] + channelInBank(c);
-        const auto chid = SciFiChannelID(ch);
-        const uint32_t correctedMat = chid.correctedUniqueMat();
+    if (starting_it >= last)
+      continue;
 
-        // Condition 1: "00"
-        // Reconstructs a single cluster
-        if (!cSize(c) || it + 1 == last) {
-          const int condition_1 = 0x00;
+    //loop over hits in a raw bank
+    for (uint it_number = 0; it_number < last - starting_it; ++it_number){
+      auto it = starting_it + it_number;
+      const uint16_t c = *it;
+      const uint32_t ch = geom.bank_first_channel[rawbank.sourceID] + channelInBank(c);
+      const auto chid = SciFiChannelID(ch);
+      const uint32_t correctedMat = chid.correctedUniqueMat();
+      //printf("%u ", correctedMat);
 
-          store_sorted_cluster_reference_v5(
-            hit_count,
-            correctedMat,
-            ch,
-            shared_mat_offsets,
-            shared_mat_count,
-            current_raw_bank,
-            it_number,
-            condition_1, // Condition 1
-            0x00,        // Condition 2
-            0x00,        // Delta
-            hits);
-        }
-        else {
-          const unsigned c2 = *(it + 1);
-          if (cSize(c2) && getLinkInBank(c) == getLinkInBank(c2)) {
-            // Condition 1: "01"
-            // Reconstructs a big cluster, composed of two fragments
-            const int condition_1 = 0x01;
+      // Condition 1: "00"
+      // Reconstructs a single cluster
+      if (!cSize(c) || it + 1 == last) {
+        const int condition_1 = 0x00;
 
-            const auto delta = (cell(c2) - cell(c));
-            if (delta > SciFiRawBankParams::clusterMaxWidth) {
-              // Condition 2: "0"
-              const int condition_2 = 0x00;
+        store_sorted_cluster_reference_v5(
+          hit_count,
+          correctedMat,
+          ch,
+          shared_mat_offsets,
+          shared_mat_count,
+          current_raw_bank,
+          it_number,
+          condition_1, // Condition 1
+          0x00,        // Condition 2
+          0x00,        // Delta
+          hits);
+      }
+      else {
+        const unsigned c2 = *(it + 1);
+        if (cSize(c2) && getLinkInBank(c) == getLinkInBank(c2)) {
+          // Condition 1: "01"
+          // Reconstructs a big cluster, composed of two fragments
+          const int condition_1 = 0x01;
 
-              for (auto j = SciFiRawBankParams::clusterMaxWidth; j < delta; j += SciFiRawBankParams::clusterMaxWidth) {
-                // Delta equals j / SciFiRawBankParams::clusterMaxWidth
-                const int delta_parameter = j / SciFiRawBankParams::clusterMaxWidth;
-                store_sorted_cluster_reference_v5(
-                  hit_count,
-                  correctedMat,
-                  ch,
-                  shared_mat_offsets,
-                  shared_mat_count,
-                  current_raw_bank,
-                  it_number,
-                  condition_1,
-                  condition_2,
-                  delta_parameter,
-                  hits);
-              }
+          const auto delta = (cell(c2) - cell(c));
+          if (delta > SciFiRawBankParams::clusterMaxWidth) {
+            // Condition 2: "0"
+            const int condition_2 = 0x00;
 
-              // Delta equals 0
-              const int delta_parameter = 0;
+            for (auto j = SciFiRawBankParams::clusterMaxWidth; j < delta; j += SciFiRawBankParams::clusterMaxWidth) {
+              // Delta equals j / SciFiRawBankParams::clusterMaxWidth
+              const int delta_parameter = j / SciFiRawBankParams::clusterMaxWidth;
               store_sorted_cluster_reference_v5(
                 hit_count,
                 correctedMat,
@@ -157,33 +143,9 @@ __global__ void scifi_pre_decode_v5(
                 delta_parameter,
                 hits);
             }
-            else {
-              // Condition 2: "1"
-              const int condition_2 = 0x01;
 
-              const auto widthClus = 2 * delta - 1 + fraction(c2);
-              store_sorted_cluster_reference_v5(
-                hit_count,
-                correctedMat,
-                ch,
-                shared_mat_offsets,
-                shared_mat_count,
-                current_raw_bank,
-                it_number,
-                condition_1,
-                condition_2,
-                0x00,
-                hits);
-            }
-
-            // Due to v5
-            ++it_number;
-          }
-          else {
-            // Condition 1: "10"
-            // Reconstructs a single cluster
-            const int condition_1 = 0x02;
-
+            // Delta equals 0
+            const int delta_parameter = 0;
             store_sorted_cluster_reference_v5(
               hit_count,
               correctedMat,
@@ -193,10 +155,49 @@ __global__ void scifi_pre_decode_v5(
               current_raw_bank,
               it_number,
               condition_1,
-              0x00,
+              condition_2,
+              delta_parameter,
+              hits);
+          }
+          else {
+            // Condition 2: "1"
+            const int condition_2 = 0x01;
+
+            const auto widthClus = 2 * delta - 1 + fraction(c2);
+            store_sorted_cluster_reference_v5(
+              hit_count,
+              correctedMat,
+              ch,
+              shared_mat_offsets,
+              shared_mat_count,
+              current_raw_bank,
+              it_number,
+              condition_1,
+              condition_2,
               0x00,
               hits);
           }
+
+          // Due to v5
+          ++it_number;
+        }
+        else {
+          // Condition 1: "10"
+          // Reconstructs a single cluster
+          const int condition_1 = 0x02;
+
+          store_sorted_cluster_reference_v5(
+            hit_count,
+            correctedMat,
+            ch,
+            shared_mat_offsets,
+            shared_mat_count,
+            current_raw_bank,
+            it_number,
+            condition_1,
+            0x00,
+            0x00,
+            hits);
         }
       }
     }

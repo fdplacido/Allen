@@ -38,7 +38,7 @@ void SequenceVisitor::visit<scifi_raw_bank_decoder_v5_t>(
   uint host_scifi_hit_count[hit_count_uints];
   uint* host_scifi_hits = new uint[host_buffers.scifi_hits_uints()];
   cudaCheck(cudaMemcpyAsync(&host_scifi_hit_count, arguments.offset<dev_scifi_hit_count>(), hit_count_uints*sizeof(uint), cudaMemcpyDeviceToHost, cuda_stream));
-  //cudaCheck(cudaMemcpyAsync(host_scifi_hits, arguments.offset<dev_scifi_hits>(), arguments.size<dev_scifi_hits>(), cudaMemcpyDeviceToHost, cuda_stream));
+  cudaCheck(cudaMemcpyAsync(host_scifi_hits, arguments.offset<dev_scifi_hits>(), arguments.size<dev_scifi_hits>(), cudaMemcpyDeviceToHost, cuda_stream));
   cudaEventRecord(cuda_generic_event, cuda_stream);
   cudaEventSynchronize(cuda_generic_event);
   SciFi::SciFiGeometry host_geom(constants.host_scifi_geometry);
