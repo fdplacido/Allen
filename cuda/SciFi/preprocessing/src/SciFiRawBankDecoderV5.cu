@@ -64,7 +64,6 @@ __global__ void scifi_raw_bank_decoder_v5(
 
   for (int i = threadIdx.x; i < number_of_hits_in_event; i += blockDim.x) {
     const uint32_t cluster_reference = hits.cluster_reference[hit_count.event_offset() + i];
-    //printf("%u\n", cluster_reference);
     // Cluster reference:
     //   raw bank: 8 bits
     //   element (it): 8 bits

@@ -7,7 +7,7 @@ __device__ void store_sorted_cluster_reference_v5(
   const SciFi::HitCount& hit_count,
   const uint32_t uniqueMat,
   const uint32_t chan,
-  const uint32_t* shared_mat_offset,
+  const uint32_t* shared_mat_offsets,
   uint32_t* shared_mat_count,
   const int raw_bank,
   const int it,
@@ -18,7 +18,6 @@ __device__ void store_sorted_cluster_reference_v5(
 {
   uint32_t uniqueGroupOrMat;
   // adaptation to hybrid decoding
-  //printf("%u ", uniqueMat);
   if(uniqueMat < SciFi::Constants::n_consecutive_raw_banks * SciFi::Constants::n_mats_per_consec_raw_bank)
     uniqueGroupOrMat = uniqueMat / SciFi::Constants::n_mats_per_consec_raw_bank;
   else
@@ -32,7 +31,7 @@ __device__ void store_sorted_cluster_reference_v5(
   }
   assert(hitIndex < hit_count.mat_group_or_mat_number_of_hits(uniqueGroupOrMat));
   assert(uniqueGroupOrMat < SciFi::Constants::n_mat_groups_and_mats);
-  hitIndex += hit_count.mat_offsets[uniqueGroupOrMat]; //does not work when using shared_mat_offsets[uniqueGroupOrMat]
+  hitIndex += shared_mat_offsets[uniqueGroupOrMat];
   // Cluster reference:
   //   raw bank: 8 bits
   //   element (it): 8 bits
@@ -63,7 +62,7 @@ __global__ void scifi_pre_decode_v5(
   HitCount hit_count {scifi_hit_count, event_number};
 
   __shared__ uint32_t shared_mat_offsets[SciFi::Constants::n_mat_groups_and_mats];
-  __shared__ uint32_t shared_mat_count[SciFi::Constants::n_mats_without_group];
+  __shared__ uint32_t shared_mat_count[SciFi::Constants::n_mat_groups_and_mats];
 
   for (uint i = threadIdx.x; i < SciFi::Constants::n_mat_groups_and_mats; i += blockDim.x) {
     shared_mat_offsets[i] = hit_count.mat_offsets[i];
@@ -95,7 +94,6 @@ __global__ void scifi_pre_decode_v5(
       const uint32_t ch = geom.bank_first_channel[rawbank.sourceID] + channelInBank(c);
       const auto chid = SciFiChannelID(ch);
       const uint32_t correctedMat = chid.correctedUniqueMat();
-      //printf("%u ", correctedMat);
 
       // Condition 1: "00"
       // Reconstructs a single cluster
