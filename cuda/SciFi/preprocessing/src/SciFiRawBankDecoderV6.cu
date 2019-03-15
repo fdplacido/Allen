@@ -6,7 +6,6 @@ using namespace SciFi;
 // Merge of PrStoreFTHit and RawBankDecoder.
 __device__ void make_cluster_v6 (
   const int hit_index,
-  const SciFi::HitCount& hit_count,
   const SciFiGeometry& geom,
   uint32_t chan,
   uint8_t fraction,
@@ -59,13 +58,12 @@ __global__ void scifi_raw_bank_decoder_v6(
   const SciFiGeometry geom {scifi_geometry};
   const auto event = SciFiRawEvent(scifi_events + scifi_event_offsets[selected_event_number]);
 
-  SciFi::Hits hits {scifi_hits, scifi_hit_count[number_of_events * SciFi::Constants::n_mats], &geom, dev_inv_clus_res};
+  SciFi::Hits hits {scifi_hits, scifi_hit_count[number_of_events * SciFi::Constants::n_mat_groups_and_mats], &geom, dev_inv_clus_res};
   SciFi::HitCount hit_count {scifi_hit_count, event_number};
   const uint number_of_hits_in_event = hit_count.event_number_of_hits();
 
   for (int i=threadIdx.x; i<number_of_hits_in_event; i+=blockDim.x) {
     const uint32_t cluster_reference = hits.cluster_reference[hit_count.event_offset() + i];
-
     // Cluster reference:
     //   raw bank: 8 bits
     //   element (it): 8 bits
@@ -136,7 +134,6 @@ __global__ void scifi_raw_bank_decoder_v6(
 
     make_cluster_v6(
       hit_count.event_offset() + i,
-      hit_count,
       geom,
       cluster_chan,
       cluster_fraction,

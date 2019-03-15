@@ -20,8 +20,13 @@ __global__ void scifi_calculate_cluster_count_v6(
 
   for(uint i = threadIdx.x; i < event.number_of_raw_banks; i += blockDim.x)
   {
-    uint32_t* hits_mat;
-    const auto rawbank = event.getSciFiRawBank(i); 
+    const uint k = i % 10;
+    const bool reverse_raw_bank_order = k < 5;
+    const uint current_raw_bank = reverse_raw_bank_order ?
+      5 * (i / 5) + (4 - i % 5) :
+      i;
+    uint32_t* hits_module;
+    const auto rawbank = event.getSciFiRawBank(current_raw_bank);
     uint16_t* it = rawbank.data + 2;
     uint16_t* last = rawbank.last;
 
@@ -30,25 +35,25 @@ __global__ void scifi_calculate_cluster_count_v6(
     for( ;  it < last; ++it ){ // loop over the clusters
       uint16_t c = *it;
       uint32_t ch = geom.bank_first_channel[rawbank.sourceID] + channelInBank(c);
-      if(i < SciFi::Constants::n_consecutive_raw_banks)
-        hits_mat = hit_count.mat_offsets + i;
+      if(current_raw_bank < SciFi::Constants::n_consecutive_raw_banks)
+        hits_module = hit_count.mat_offsets + i;
       else
-        hits_mat = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat() - SciFi::Constants::mat_index_substract;
+        hits_module = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat() - SciFi::Constants::mat_index_substract;
       if( !cSize(c) ) {  //Not flagged as large
-        atomicAdd(hits_mat, 1);
+        atomicAdd(hits_module, 1);
       } else if( fraction(c) ) { // flagged as first edge of large cluster
         // last cluster in bank or in sipm
         if(  it+1 == last || getLinkInBank(c) != getLinkInBank( *(it+1)) ) 
-          atomicAdd(hits_mat, 1);
+          atomicAdd(hits_module, 1);
         else {
           unsigned c2 = *(it+1);
           assert( cSize(c2) && !fraction(c2) );
           unsigned int widthClus = (cell(c2) - cell(c) + 2);
           if ( widthClus  > 8 )
             // number of for loop passes + one additional
-            atomicAdd(hits_mat, widthClus / 4 + 1);
+            atomicAdd(hits_module, widthClus / 4 + 1);
           else
-            atomicAdd(hits_mat, 1);
+            atomicAdd(hits_module, 1);
           ++it;
         }
       }
