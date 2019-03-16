@@ -1,12 +1,12 @@
-#include "LFExtendTracksFirstLayersX.cuh"
+#include "LFExtendTracksUV.cuh"
 #include "SequenceVisitor.cuh"
 
-DEFINE_EMPTY_SET_ARGUMENTS_SIZE(lf_extend_tracks_first_layers_x_t)
+DEFINE_EMPTY_SET_ARGUMENTS_SIZE(lf_extend_tracks_uv_t)
 
 template<>
-void SequenceVisitor::visit<lf_extend_tracks_first_layers_x_t>(
-  lf_extend_tracks_first_layers_x_t& state,
-  const lf_extend_tracks_first_layers_x_t::arguments_t& arguments,
+void SequenceVisitor::visit<lf_extend_tracks_uv_t>(
+  lf_extend_tracks_uv_t& state,
+  const lf_extend_tracks_uv_t::arguments_t& arguments,
   const RuntimeOptions& runtime_options,
   const Constants& constants,
   HostBuffers& host_buffers,
@@ -25,34 +25,32 @@ void SequenceVisitor::visit<lf_extend_tracks_first_layers_x_t>(
       constants.dev_scifi_geometry,
       constants.dev_looking_forward_constants,
       constants.dev_inv_clus_res,
-      arguments.offset<dev_scifi_lf_number_of_candidates>(),
-      arguments.offset<dev_scifi_lf_candidates>(),
+      arguments.offset<dev_ut_states>(),
       relative_extrapolation_layer);
   };
 
-  // * Forward to layer 1
-  // * Forward to layer 0
-  for (int i=0; i<2; ++i) {
-    forwarding_set_arguments(1 - i);
+  // * Forward to UV layers
+  for (int i=0; i<6; ++i) {
+    forwarding_set_arguments(i);
     state.invoke();
   }
 
-  // cudaCheck(cudaMemcpyAsync(
-  //   host_buffers.host_atomics_scifi,
-  //   arguments.offset<dev_atomics_scifi>(),
-  //   arguments.size<dev_atomics_scifi>(),
-  //   cudaMemcpyDeviceToHost,
-  //   cuda_stream));
+  cudaCheck(cudaMemcpyAsync(
+    host_buffers.host_atomics_scifi,
+    arguments.offset<dev_atomics_scifi>(),
+    arguments.size<dev_atomics_scifi>(),
+    cudaMemcpyDeviceToHost,
+    cuda_stream));
 
-  // cudaCheck(cudaMemcpyAsync(
-  //   host_buffers.host_scifi_tracks,
-  //   arguments.offset<dev_scifi_tracks>(),
-  //   arguments.size<dev_scifi_tracks>(),
-  //   cudaMemcpyDeviceToHost,
-  //   cuda_stream));
+  cudaCheck(cudaMemcpyAsync(
+    host_buffers.host_scifi_tracks,
+    arguments.offset<dev_scifi_tracks>(),
+    arguments.size<dev_scifi_tracks>(),
+    cudaMemcpyDeviceToHost,
+    cuda_stream));
 
-  // cudaEventRecord(cuda_generic_event, cuda_stream);
-  // cudaEventSynchronize(cuda_generic_event);
+  cudaEventRecord(cuda_generic_event, cuda_stream);
+  cudaEventSynchronize(cuda_generic_event);
 
   // for (uint i=0; i<host_buffers.host_number_of_selected_events[0]; ++i) {
   //   const auto number_of_tracks = scifi_atomics[i];
