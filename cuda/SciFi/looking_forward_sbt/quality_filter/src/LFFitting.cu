@@ -1,8 +1,8 @@
-#include "LookingForwardFitting.h"
+#include "LFFitting.cuh"
 #include <cmath>
 #include <cstdlib>
 
-float get_average_x_at_reference_plane(
+__device__ float LookingForward::get_average_x_at_reference_plane(
   const int* hits,
   const int n_hits,
   const SciFi::Hits& scifi_hits,
@@ -11,6 +11,7 @@ float get_average_x_at_reference_plane(
   const MiniState& velo_state,
   const float zMagSlope) 
 {
+  
   float average_x = 0;
   for ( int i_hit = 0; i_hit < n_hits; ++i_hit ) {
     const int hit = hits[i_hit];
@@ -39,7 +40,7 @@ float get_average_x_at_reference_plane(
 }
 
 
-bool fitYProjection_proto(
+__device__ bool LookingForward::fitYProjection_proto(
   const MiniState& velo_state,
   const SciFi::Tracking::Arrays* constArrays,
   const int* uv_hits,
@@ -47,9 +48,6 @@ bool fitYProjection_proto(
   const SciFi::Hits& scifi_hits,
   float trackParams[SciFi::Tracking::nTrackParams])
 {
-
-  float maxChi2 = 1.e9f;
-  bool parabola = false; // first linear than parabola
   //== Fit a line
   const float txs = trackParams[0]; // simplify overgeneral c++ calculation
   const float tsxz = velo_state.x + (SciFi::Tracking::zReference - velo_state.z) * velo_state.tx;
@@ -105,7 +103,7 @@ bool fitYProjection_proto(
 } 
 
 
-int fitParabola_proto(
+__device__ int LookingForward::fitParabola_proto(
   const SciFi::Hits& scifi_hits,
   const int* coordToFit,
   const int n_coordToFit,
@@ -164,7 +162,7 @@ int fitParabola_proto(
   return true;
 }
 
-int getChi2( 
+__device__ int LookingForward::getChi2( 
   const SciFi::Hits& scifi_hits,
   int* coordToFit,
   const int n_coordToFit,
@@ -190,7 +188,7 @@ int getChi2(
   return true;
 }
 
-void removeOutlier_proto(
+__device__ void LookingForward::removeOutlier_proto(
   const SciFi::Hits& scifi_hits,
   int* coordToFit,
   int& n_coordToFit,
@@ -208,14 +206,14 @@ void removeOutlier_proto(
   }
 }
 
-bool quadraticFitX_proto(
+__device__ bool LookingForward::quadraticFitX_proto(
   const SciFi::Hits& scifi_hits,
   int* coordToFit,
   int& n_coordToFit,
   float trackParameters[SciFi::Tracking::nTrackParams],
   const bool xFit)
 {
- if (n_coordToFit < SciFi::LookingForward::minHits) return false; 
+ if (n_coordToFit < LookingForward::track_min_hits) return false; 
   bool doFit = true;
   while (doFit) {
     fitParabola_proto(
@@ -251,11 +249,11 @@ bool quadraticFitX_proto(
     doFit = false;
     //if (totChi2 / nDoF > SciFi::Tracking::maxChi2PerDoF || maxChi2 > SciFi::Tracking::maxChi2XProjection) {
     
-    // TODO: Uncomment removeOutlier
+    // TODO: Commented out
     // if ( maxChi2 > 2000) {
     // //if ( totChi2 / nDoF > 5000 ) {
     //   removeOutlier_proto(scifi_hits, coordToFit, n_coordToFit, coordToFit[worst]);
-    //   if (n_coordToFit < SciFi::LookingForward::minHits) return false;
+    //   if (n_coordToFit < LookingForward::track_min_hits) return false;
     //   doFit = true;
     // }
   }
