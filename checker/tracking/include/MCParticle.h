@@ -28,6 +28,8 @@ struct MCParticle {
   bool fromBeautyDecay;
   bool fromCharmDecay;
   bool fromStrangeDecay;
+  uint32_t motherKey;
+  float charge;
   uint32_t numHits;
   uint32_t nPV; // # of reconstructible primary vertices in event
   std::vector<uint32_t> hits;

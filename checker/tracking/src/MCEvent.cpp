@@ -50,6 +50,10 @@ MCEvent::MCEvent(const std::vector<char>& event, const bool checkEvent)
     input += sizeof(int8_t);
     p.fromStrangeDecay = (bool) *((int8_t*) input);
     input += sizeof(int8_t);
+    p.motherKey = *((uint32_t*) input);
+    input += sizeof(uint32_t);
+    p.charge = *((float*) input);
+    input += sizeof(float);
     p.nPV = *((uint32_t*) input);
     input += sizeof(uint32_t);
 
@@ -142,6 +146,8 @@ void MCEvent::print(const MCParticles& mcps) const
               << "  fromBeautyDecay " << p.fromBeautyDecay << std::endl
               << "  fromCharmDecay " << p.fromCharmDecay << std::endl
               << "  fromStrangeDecay " << p.fromStrangeDecay << std::endl
+              << "  motherKey " << p.motherKey << std::endl
+              << "  charge " << p.charge << std::endl
               << "  numHits " << p.numHits << std::endl;
   }
 }
