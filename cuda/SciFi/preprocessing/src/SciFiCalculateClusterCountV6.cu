@@ -39,15 +39,15 @@ __global__ void scifi_calculate_cluster_count_v6(
         hits_module = hit_count.mat_offsets + i;
       else
         hits_module = hit_count.mat_offsets + SciFiChannelID(ch).correctedUniqueMat() - SciFi::Constants::mat_index_substract;
-      if( !cSize(c) ) {  //Not flagged as large
+      if(!cSize(c)) {  //Not flagged as large
         atomicAdd(hits_module, 1);
-      } else if( fraction(c) ) { // flagged as first edge of large cluster
+      } else if(fraction(c)) { // flagged as first edge of large cluster
         // last cluster in bank or in sipm
-        if(  it+1 == last || getLinkInBank(c) != getLinkInBank( *(it+1)) ) 
+        if(it+1 == last || getLinkInBank(c) != getLinkInBank(*(it+1)))
           atomicAdd(hits_module, 1);
         else {
           unsigned c2 = *(it+1);
-          assert( cSize(c2) && !fraction(c2) );
+          assert(cSize(c2) && !fraction(c2));
           unsigned int widthClus = (cell(c2) - cell(c) + 2);
           if ( widthClus  > 8 )
             // number of for loop passes + one additional
