@@ -6,7 +6,7 @@ void checkKalmanTracks(
   const std::vector<trackChecker::Tracks>& tracks,
   const MCEvents selected_mc_events)
 {
-
+  
   // Setup the TTree.
   float trk_z, trk_x, trk_y, trk_tx, trk_ty, trk_qop;
   float trk_first_qop, trk_best_qop, trk_best_pt;
@@ -51,7 +51,7 @@ void checkKalmanTracks(
 #endif
 
   // Loop over events.
-  for (int i_event; i_event < selected_mc_events.size(); ++i_event) {
+  for (int i_event = 0; i_event < selected_mc_events.size(); ++i_event) {
 
     const auto& mc_event = selected_mc_events[i_event];
     const auto& mcps = mc_event.mc_particles<TrackCheckerForward>();
