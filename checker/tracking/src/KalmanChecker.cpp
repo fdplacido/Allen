@@ -6,7 +6,7 @@ void checkKalmanTracks(
   const std::vector<trackChecker::Tracks>& tracks,
   const MCEvents selected_mc_events)
 {
-  
+
   // Setup the TTree.
   float trk_z, trk_x, trk_y, trk_tx, trk_ty, trk_qop;
   float trk_first_qop, trk_best_qop, trk_best_pt;
