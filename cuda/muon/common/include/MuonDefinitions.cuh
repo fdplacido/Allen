@@ -35,5 +35,6 @@ namespace Muon {
     unsigned int time[Constants::max_numhits_per_event] = {0};
     int delta_time[Constants::max_numhits_per_event] = {0};
     int cluster_size[Constants::max_numhits_per_event] = {0};
+    int region[Constants::max_numhits_per_event] = {0};
   };
 } // namespace Muon

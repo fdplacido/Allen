@@ -12,7 +12,7 @@
 #define DAQEVENT_RAWEVENT_H 1
 
 // Include files
-#include "RawBank.h"
+#include "raw_bank.hpp"
 #include "MuonTileID.h"
 #include "gsl-lite.hpp"
 #include <map>

@@ -152,7 +152,7 @@ void commonMuonHitsToHitsSoA(std::array<std::array<CommonMuonHits, 4>, 4>& commo
     hitsPerStation = 0;
     for (auto commonMuonHitsPerRegion: commonMuonHitsPerStation) {
       for (auto commonMuonHit: commonMuonHitsPerRegion) {
-        muon_station_hits->tile[i] = commonMuonHit.tile();
+        muon_station_hits->tile[i] = commonMuonHit.tile().id();
         muon_station_hits->x[i] = commonMuonHit.x();
         muon_station_hits->dx[i] = commonMuonHit.dx();
         muon_station_hits->y[i] = commonMuonHit.y();

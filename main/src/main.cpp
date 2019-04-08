@@ -59,6 +59,7 @@ int main(int argc, char* argv[])
   std::string folder_name_detector_configuration = "../input/detector_configuration/";
   std::string folder_name_muon_common_hits = "../input/minbias/muon_common_hits/";
   std::string file_name_muon_catboost_model = "../input/muon/muon_catboost_model.json";
+  std::string file_name_muon_table = "../input/muon/muon_table.bin";
   uint number_of_events_requested = 0;
   uint start_event_offset = 0;
   uint number_of_threads = 1;
@@ -205,6 +206,11 @@ int main(int argc, char* argv[])
   MuonTable pad = MuonTable();
   MuonTable stripX = MuonTable();
   MuonTable stripY = MuonTable();
+  char muon_table_raw_input[1200000];
+  memset(muon_table_raw_input, 0, sizeof(muon_table_raw_input));
+  std::ifstream muon_table_file(file_name_muon_table, std::ios::binary);
+  muon_table_file.read(raw_input_table, 1200000);
+  muon_table_file.close();
   MuonTableReader muonTableReader = MuonTableReader();
   muonTableReader.read(muon_table_raw_input, &pad, &stripX, &stripY);
   MuonRawToHits muonRawToHits = MuonRawToHits(&pad, &stripX, &stripY);

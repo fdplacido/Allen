@@ -66,7 +66,7 @@ namespace LHCb {
       set(ly, MuonBase::ShiftLayoutY, MuonBase::MaskLayoutY);
     }
 
-    unsigned int id() {
+    const unsigned int id() const {
       return m_muonid;
     }
   };

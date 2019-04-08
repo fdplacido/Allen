@@ -22,7 +22,7 @@
 #include "MuonTileID.h"
 #include "RawEvent.h"
 #include "CommonMuonHit.h"
-#include "RawBank.h"
+#include "raw_bank.hpp"
 #include <cassert>
 
 /** @class MuonRawToHits MuonRawToHits.h
