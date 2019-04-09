@@ -125,11 +125,13 @@ add_subdirectory(x86/UT/PrVeloUT)
 add_subdirectory(x86/SciFi)
 add_subdirectory(x86/velo/clustering)
 add_subdirectory(x86/PV/beamlinePV)
+add_subdirectory(x86/muon/decoding)
 add_subdirectory(mdf)
 
 # Include directories
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 include_directories(main/include)
+include_directories(x86/muon/decoding/include)
 include_directories(x86/velo/clustering/include)
 include_directories(cuda/global_event_cut/include)
 include_directories(cuda/UT/common/include)
@@ -174,7 +176,7 @@ set_property(TARGET Common PROPERTY
              CUDA_SEPARABLE_COMPILATION ON)
 
 # main executable
-add_executable(Allen ${main_cpp_path} x86/muon/decoding/include/MuonTileID.h x86/muon/decoding/include/MuonBase.h x86/muon/decoding/src/MuonTable.cpp x86/muon/decoding/include/MuonTable.h x86/muon/decoding/include/MuonLayout.h x86/muon/decoding/src/Decoding.cpp x86/muon/decoding/src/Tools.cpp x86/muon/decoding/src/MuonTableReader.cpp x86/muon/decoding/include/MuonTableReader.h)
+add_executable(Allen ${main_cpp_path})
 set_property(TARGET Allen
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
