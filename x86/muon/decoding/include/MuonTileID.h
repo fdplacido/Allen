@@ -1,5 +1,4 @@
-#ifndef ALLEN_MUONTILEID_H
-#define ALLEN_MUONTILEID_H
+#pragma once
 
 #include <string>
 #include "MuonBase.h"
@@ -7,7 +6,7 @@
 
 class MuonLayout;
 
-namespace LHCb {
+namespace Muon {
   class MuonTileID {
   private:
     unsigned int m_muonid;
@@ -20,6 +19,10 @@ namespace LHCb {
     }
 
   public:
+    static unsigned int station(unsigned int id) {
+      return (id & MuonBase::MaskStation) >> MuonBase::ShiftStation;
+    }
+
     unsigned int station() const {
       return (m_muonid & MuonBase::MaskStation) >> MuonBase::ShiftStation;
     }
@@ -66,9 +69,8 @@ namespace LHCb {
       set(ly, MuonBase::ShiftLayoutY, MuonBase::MaskLayoutY);
     }
 
-    const unsigned int id() const {
+    unsigned int id() const {
       return m_muonid;
     }
   };
 };
-#endif //ALLEN_MUONTILEID_H

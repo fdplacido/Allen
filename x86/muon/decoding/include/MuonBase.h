@@ -1,5 +1,4 @@
-#ifndef ALLEN_MUONBASE_H
-#define ALLEN_MUONBASE_H
+#pragma once
 
 namespace MuonBase {
 
@@ -52,5 +51,3 @@ namespace MuonBase {
   static const int LEFT   = -1;
 
 }
-
-#endif //ALLEN_MUONBASE_H

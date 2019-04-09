@@ -178,19 +178,23 @@ int main(int argc, char* argv[])
   const auto folder_name_UT_raw = folder_name_raw + "UT";
   const auto folder_name_mdf = folder_name_raw + "mdf";
   const auto folder_name_SciFi_raw = folder_name_raw + "FTCluster";
+  const auto folder_name_muon_raw = folder_name_raw + "Muon";
   const auto geometry_reader = GeometryReader(folder_name_detector_configuration);
   const auto ut_magnet_tool_reader = UTMagnetToolReader(folder_name_detector_configuration);
 
   std::unique_ptr<EventReader> event_reader;
   std::unique_ptr<CatboostModelReader> muon_catboost_model_reader;
   if (use_mdf) {
-    event_reader = std::make_unique<MDFReader>(FolderMap {
-      {{BankTypes::VP, folder_name_mdf}, {BankTypes::UT, folder_name_mdf}, {BankTypes::FT, folder_name_mdf}}});
+    event_reader = std::make_unique<MDFReader>(FolderMap {{{BankTypes::VP, folder_name_mdf},
+                                                           {BankTypes::UT, folder_name_mdf},
+                                                           {BankTypes::FT, folder_name_mdf},
+                                                           {BankTypes::MUON, folder_name_mdf}}});
   }
   else {
     event_reader = std::make_unique<EventReader>(FolderMap {{{BankTypes::VP, folder_name_velopix_raw},
                                                              {BankTypes::UT, folder_name_UT_raw},
-                                                             {BankTypes::FT, folder_name_SciFi_raw}}});
+                                                             {BankTypes::FT, folder_name_SciFi_raw},
+                                                             {BankTypes::MUON, folder_name_muon_raw}}});
   }
 
   const auto velo_geometry = geometry_reader.read_geometry("velo_geometry.bin");
@@ -202,25 +206,10 @@ int main(int argc, char* argv[])
 
   std::vector<char> events;
   std::vector<uint> event_offsets;
-
-  MuonTable pad = MuonTable();
-  MuonTable stripX = MuonTable();
-  MuonTable stripY = MuonTable();
-  char muon_table_raw_input[1200000];
-  memset(muon_table_raw_input, 0, sizeof(muon_table_raw_input));
-  std::ifstream muon_table_file(file_name_muon_table, std::ios::binary);
-  muon_table_file.read(raw_input_table, 1200000);
-  muon_table_file.close();
-  MuonTableReader muonTableReader = MuonTableReader();
-  muonTableReader.read(muon_table_raw_input, &pad, &stripX, &stripY);
-  MuonRawToHits muonRawToHits = MuonRawToHits(&pad, &stripX, &stripY);
   std::vector<Muon::HitsSoA> muon_hits_events(number_of_events_requested);
-  for (size_t i = 0; i < muon_hits_events.size(); i++) {
-    LHCb::RawEvent rawEvent;//???
-    auto commonMuonHitsByStationAndRegion = muonRawToHits(rawEvent);
-    commonMuonHitsToHitsSoA(commonMuonHitsByStationAndRegion, &muon_hits_events[i]);
-  }
-
+  read_folder(folder_name_muon_common_hits, number_of_events_requested, events, event_offsets, start_event_offset);
+  read_muon_events_into_arrays(
+      muon_hits_events.data(), events.data(), event_offsets.data(), number_of_events_requested);
   const int number_of_outputted_hits_per_event = 3;
   check_muon_events(muon_hits_events.data(), number_of_outputted_hits_per_event, number_of_events_requested);
   muon_catboost_model_reader = std::make_unique<CatboostModelReader>(file_name_muon_catboost_model);

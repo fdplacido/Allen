@@ -1,60 +1,6 @@
 #include "MuonTable.h"
 
-void MuonTableReader::read(const char* raw_input, MuonTable* pad, MuonTable* stripX, MuonTable* stripY) {
-  MuonTable* muonTables[3] = {pad, stripX, stripY};
-  for (MuonTable* muonTable : muonTables) {
-    size_t gridXSize;
-    std::copy_n((size_t*) raw_input, 1, &gridXSize);
-    raw_input += sizeof(size_t);
-    std::copy_n((int*) raw_input, gridXSize, muonTable -> gridX);
-    raw_input += sizeof(int) * gridXSize;
-
-    size_t gridYSize;
-    std::copy_n((size_t*) raw_input, 1, &gridYSize);
-    raw_input += sizeof(size_t);
-    std::copy_n((int*) raw_input, gridYSize, muonTable -> gridY);
-    raw_input += sizeof(int) * gridYSize;
-
-    size_t sizeXSize;
-    std::copy_n((size_t *) raw_input, 1, &sizeXSize);
-    raw_input += sizeof(size_t);
-    std::copy_n((float*) raw_input, sizeXSize, muonTable -> sizeX);
-    raw_input += sizeof(float) * sizeXSize;
-
-    size_t sizeYSize;
-    std::copy_n((size_t*) raw_input, 1, &sizeYSize);
-    raw_input += sizeof(size_t);
-    std::copy_n((float*) raw_input, sizeYSize, muonTable -> sizeY);
-    raw_input += sizeof(float) * sizeYSize;
-
-    size_t offsetSize;
-    std::copy_n((size_t*) raw_input, 1, &offsetSize);
-    raw_input += sizeof(size_t);
-    std::copy_n((unsigned int*) raw_input, offsetSize, muonTable -> offset);
-    raw_input += sizeof(unsigned int) * offsetSize;
-
-    size_t tableSize;
-    std::copy_n((size_t*) raw_input, 1, &tableSize);
-    raw_input += sizeof(size_t);
-    for (int i = 0; i < tableSize; i++) {
-      size_t stationTableSize;
-      std::copy_n((size_t*) raw_input, 1, &stationTableSize);
-      raw_input += sizeof(size_t);
-      (muonTable -> points)[i].resize(stationTableSize);
-      for (int j = 0; j < stationTableSize; j++) {
-        float point[3];
-        std::copy_n((float *) raw_input, 3, point);
-        raw_input += sizeof(float) * 3;
-        for (int k = 0; k < 3; k++) {
-          (muonTable->points)[i][j][k] = point[k];
-        }
-      }
-    }
-  }
-}
-
-
-void calcTilePos(MuonTable* pad, LHCb::MuonTileID& tile, double& x, double& deltax, double& y, double& deltay,
+void calcTilePos(MuonTable* pad, Muon::MuonTileID& tile, double& x, double& deltax, double& y, double& deltay,
                  double& z) {
   int          station    = tile.station();
   int          region     = tile.region();
@@ -79,7 +25,7 @@ void calcTilePos(MuonTable* pad, LHCb::MuonTileID& tile, double& x, double& delt
   deltay                   = (pad -> sizeY)[station * 4 + region];
 }
 
-void calcStripXPos(MuonTable* stripX, LHCb::MuonTileID& tile, double& x, double& deltax, double& y, double& deltay,
+void calcStripXPos(MuonTable* stripX, Muon::MuonTileID& tile, double& x, double& deltax, double& y, double& deltay,
                    double& z) {
   int station        = tile.station();
   int region         = tile.region();
@@ -106,7 +52,7 @@ void calcStripXPos(MuonTable* stripX, LHCb::MuonTileID& tile, double& x, double&
   deltay                   = (stripX -> sizeY)[station * 4 + region];
 }
 
-void calcStripYPos(MuonTable* stripY, LHCb::MuonTileID& tile, double& x, double& deltax, double& y, double& deltay,
+void calcStripYPos(MuonTable* stripY, Muon::MuonTileID& tile, double& x, double& deltax, double& y, double& deltay,
                    double& z) {
   int station        = tile.station();
   int region         = tile.region();
@@ -133,12 +79,12 @@ void calcStripYPos(MuonTable* stripY, LHCb::MuonTileID& tile, double& x, double&
   deltay                   = (stripY -> sizeY)[station * 4 + region];
 }
 
-int transform_for_uncrossed_hits(LHCb::MuonTileID& tile, MuonTable* pad, MuonTable* stripX, MuonTable* stripY,
+int transform_for_uncrossed_hits(Muon::MuonTileID& tile, MuonTable* pad, MuonTable* stripX, MuonTable* stripY,
                                  double& x, double& dx, double& y, double& dy, double& z) {
   unsigned int x1 = getLayoutX(0, tile.station(), tile.region());
   unsigned int y1 = getLayoutY(0, tile.station(), tile.region());
   MuonLayout layoutOne = MuonLayout(x1, y1);
-  if (tile.station() > 1 && tile.region() == 0) {
+  if (tile.station() > Muon::Constants::n_stations && tile.region() == 0) {
     calcTilePos(pad, tile, x, dx, y, dy, z);
     return 1;
   } else {

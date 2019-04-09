@@ -1,13 +1,3 @@
-/*****************************************************************************\
-* (c) Copyright 2000-2018 CERN for the benefit of the LHCb Collaboration      *
-*                                                                             *
-* This software is distributed under the terms of the GNU General Public      *
-* Licence version 3 (GPL Version 3), copied verbatim in the file "COPYING".   *
-*                                                                             *
-* In applying this licence, CERN does not waive the privileges and immunities *
-* granted to it by virtue of its status as an Intergovernmental Organization  *
-* or submit itself to any jurisdiction.                                       *
-\*****************************************************************************/
 #include "MuonRawToHits.h"
 
 namespace MuonRawHits {
@@ -19,6 +9,7 @@ namespace MuonRawHits {
     TOO_MANY_HITS,
     INVALID_TELL1
   };
+
   struct ErrorCategory {
     const char* name() const { return "MuonRawBankDecoding"; }
     std::string message( ErrorCode code ) const {
@@ -73,13 +64,13 @@ namespace {
 //=============================================================================
 // Main execution
 //=============================================================================
-std::array<std::array<CommonMuonHits, 4>, 4> MuonRawToHits::operator()( const LHCb::RawEvent& raw ) const {
-
+void MuonRawToHits::operator()(const LHCb::RawEvent& raw, Muon::HitsSoA* hitsSoA) const {
+  size_t currentHitsIndex = 0;
   const auto&                       mb = raw.banks( LHCb::RawBank::Muon );
   std::array<std::vector<Digit>, 4> decoding;
   for ( auto& decode : decoding ) { decode.reserve( nDigits( mb ) ); }
 
-  std::array<std::array<CommonMuonHits, 4>, 4> commonMuonHitsByStationAndRegion;
+  //std::array<std::array<CommonMuonHits, 4>, 4> commonMuonHitsByStationAndRegion;
 
   // decode tha data
   decodeTileAndTDC( raw, decoding );
@@ -94,8 +85,6 @@ std::array<std::array<CommonMuonHits, 4>, 4> MuonRawToHits::operator()( const LH
   }
 
   for ( auto& decode : decoding ) {
-    CommonMuonHits commonHits;
-    commonHits.reserve( decode.size() );
     std::array<DigitsRange, 16> perRegQua;
 
     unsigned nReg = 0;
@@ -111,14 +100,25 @@ std::array<std::array<CommonMuonHits, 4>, 4> MuonRawToHits::operator()( const LH
     // do the crossing
     for ( auto& coordsPerRegQua : perRegQua) {
       // return coords directly
-      addCoordsCrossingMap( coordsPerRegQua, commonHits );
+      addCoordsCrossingMap( coordsPerRegQua, hitsSoA, currentHitsIndex);
     }
-    auto station = it->tile.station();
-    auto region  = m_xRegions.size() - m_nStations + station;
-
-    commonMuonHitsByStationAndRegion[station][region] = std::move(commonHits);
+//    auto station = it->tile.station();
+//    auto region  = m_xRegions.size() - m_nStations + station;
   }
-  return commonMuonHitsByStationAndRegion;
+
+  unsigned int currentStation = 0;
+  for (int i = 1; i < Muon::Constants::max_numhits_per_event; i++) {
+    int id = hitsSoA -> tile[i];
+    if (Muon::MuonTileID.station(id) != currentStation) {
+      hitsSoA -> number_of_hits_per_station[currentStation] =
+          i - (hitsSoA -> number_of_hits_per_station[max(0, currentStation - 1)]);
+      if (currentStation == Muon::Constants::n_stations - 1) {
+        break;
+      }
+      hitsSoA -> station_offsets[currentStation + 1] = i;
+      currentStation++;
+    }
+  }
 }
 
 //=============================================================================
@@ -137,7 +137,7 @@ std::array<MuonLayout, 2> MuonRawToHits::makeStripLayouts( const unsigned int st
 }
 
 
-void MuonRawToHits::addCoordsCrossingMap( DigitsRange& digits, CommonMuonHits& commonHits ) const {
+void MuonRawToHits::addCoordsCrossingMap(DigitsRange& digits, Muon::HitsSoA* hitsSoA, size_t& currentHitIndex) const {
   // need to calculate the shape of the horizontal and vertical logical strips
 
   // get local MuonLayouts for strips
@@ -179,14 +179,18 @@ void MuonRawToHits::addCoordsCrossingMap( DigitsRange& digits, CommonMuonHits& c
           continue;
         }
 
-        LHCb::MuonTileID padTile( one.tile );
+        Muon::MuonTileID padTile( one.tile );
         padTile.setY( two.tile.nY() );
         padTile.setLayout( MuonLayout( thisGridX, otherGridY ) );
 
         double x = 0., dx = 0., y = 0., dy = 0., z = 0., dz = 0.;
         calcTilePos(pad, padTile, x, dx, y, dy, z);
-
-        commonHits.emplace_back( std::move( padTile ), x, dx, y, dy, z, 0, 0, one.tdc, one.tdc - two.tdc );
+        unsigned int uncrossed = 0;
+        int clusterSize = 0;
+        int region = padTile.region();
+        hitsSoA -> addAtIndex(currentHitIndex, padTile.id(), x, dx, y, dy, z, dz, uncrossed, one.tdc, one.tdc - two.tdc, clusterSize, region);
+        currentHitIndex++;
+//        commonHits.emplace_back( std::move( padTile ), x, dx, y, dy, z, 0, 0, one.tdc, one.tdc - two.tdc );
         used[i] = used[j] = true;
       }
       ++j;
@@ -206,7 +210,12 @@ void MuonRawToHits::addCoordsCrossingMap( DigitsRange& digits, CommonMuonHits& c
       } else {
         calcStripXPos(stripX, digit.tile, x, dx, y, dy, z);
       }
-      commonHits.emplace_back( digit.tile, x, dx, y, dy, z, 0, 1, digit.tdc, digit.tdc );
+      unsigned int uncrossed = 1;
+      int clusterSize = 0;
+      int region = digit.tile.region();
+      hitsSoA -> addAtIndex(currentHitIndex, digit.tile.id(), x, dx, y, dy, z, dz, uncrossed, digit.tdc, digit.tdc, clusterSize, region);
+      currentHitIndex++;
+//      commonHits.emplace_back( digit.tile, x, dx, y, dy, z, 0, 1, digit.tdc, digit.tdc );
     }
     ++m;
   }
@@ -219,7 +228,12 @@ void MuonRawToHits::addCoordsCrossingMap( DigitsRange& digits, CommonMuonHits& c
       } else {
         calcStripYPos(stripX, digit.tile, x, dx, y, dy, z);
       }
-      commonHits.emplace_back( digit.tile, x, dx, y, dy, z, 0, 1, digit.tdc, digit.tdc );
+      unsigned int uncrossed = 1;
+      int clusterSize = 0;
+      int region = digit.tile.region();
+      hitsSoA -> addAtIndex(currentHitIndex, digit.tile.id(), x, dx, y, dy, z, dz, uncrossed, digit.tdc, digit.tdc, clusterSize, region);
+      currentHitIndex++;
+      //commonHits.emplace_back( digit.tile, x, dx, y, dy, z, 0, 1, digit.tdc, digit.tdc );
     }
     ++m;
   }
@@ -263,8 +277,8 @@ void MuonRawToHits::decodeTileAndTDC( const LHCb::RawEvent&             rawdata,
         unsigned int     add       = ( pp & 0x0FFF );
         unsigned int     tdc_value = ( ( pp & 0xF000 ) >> 12 );
 
-        //LHCb::MuonTileID tile      = m_muonDetector->getDAQInfo()->getADDInTell1( tell1Number, add );???
-        LHCb::MuonTileID tile = LHCb::MuonTileID(0);
+        //Muon::MuonTileID tile      = m_muonDetector->getDAQInfo()->getADDInTell1( tell1Number, add );???
+        Muon::MuonTileID tile = Muon::MuonTileID(0);
 
         //if ( UNLIKELY( msgLevel( MSG::VERBOSE ) ) ) verbose() << " add " << add << " " << tile << endmsg;
         unsigned int pippo = tile.id();

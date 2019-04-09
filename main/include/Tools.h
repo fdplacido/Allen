@@ -11,7 +11,6 @@
 #include "Logger.h"
 #include "ClusteringDefinitions.cuh"
 #include "MuonDefinitions.cuh"
-#include "CommonMuonHit.h"
 
 bool check_velopix_events(const std::vector<char>& events, const std::vector<uint>& event_offsets, size_t n_events);
 
@@ -28,5 +27,3 @@ void read_muon_events_into_arrays(
   const int n_events);
 
 void check_muon_events(const Muon::HitsSoA* muon_station_hits, const int hits_to_out, const int n_events);
-
-void commonMuonHitsToHitsSoA(std::array<std::array<CommonMuonHits, 4>, 4>& commonMuonHits, Muon::HitsSoA* muon_station_hits);

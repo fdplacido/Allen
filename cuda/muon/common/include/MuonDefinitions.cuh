@@ -36,5 +36,8 @@ namespace Muon {
     int delta_time[Constants::max_numhits_per_event] = {0};
     int cluster_size[Constants::max_numhits_per_event] = {0};
     int region[Constants::max_numhits_per_event] = {0};
+
+    void addAtIndex(size_t index, int tile, float x, float dx, float y, float dy, float z, float dz,
+         int uncrossed, unsigned int time, int delta_time, int cluster_size, int region);
   };
 } // namespace Muon
