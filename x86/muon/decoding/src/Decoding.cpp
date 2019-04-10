@@ -1,13 +1,11 @@
-#include "MuonTable.h"
-#include "MuonTableReader.h"
-#include "MuonRawToHits.h"
-#include <fstream>
-#include <cstring>
+#include "Decoding.h"
+void MuonRawToHitsDecoder::f() {
 
-void decode() {
+}
+/*
+void MuonRawToHitsDecoder::decode(gsl::span<char> events, gsl::span<unsigned int> offsets, std::vector<Muon::HitsSoA>& muon_hits_events) {
   std::string file_name_muon_table = "../input/muon/muon_table.bin";
   int number_of_events_requested = 5;
-
   MuonTable pad = MuonTable();
   MuonTable stripX = MuonTable();
   MuonTable stripY = MuonTable();
@@ -19,11 +17,10 @@ void decode() {
   MuonTableReader muonTableReader = MuonTableReader();
   muonTableReader.read(muon_table_raw_input, &pad, &stripX, &stripY);
   MuonRawToHits muonRawToHits = MuonRawToHits(&pad, &stripX, &stripY);
-  std::vector<Muon::HitsSoA> muon_hits_events(number_of_events_requested);
   for (size_t i = 0; i < muon_hits_events.size(); i++) {
-    //LHCb::RawEvent rawEvent;
-    //charsToRawEvent(event_reader->events[i], rawEvent);
-    //auto commonMuonHitsByStationAndRegion = muonRawToHits(rawEvent);
-    //commonMuonHitsToHitsSoA(commonMuonHitsByStationAndRegion, &muon_hits_events[i]);
+    gsl::span<char> rawEventSpan = {events.begin() + offsets[i], offsets[i + 1] - offsets[i]};
+    Muon::MuonRawEvent rawEvent = Muon::MuonRawEvent((const char *) rawEventSpan.begin());
+    muonRawToHits(rawEvent, &muon_hits_events[i]);
   }
 }
+*/

@@ -6,7 +6,7 @@
 #include <numeric>
 #include <algorithm>
 #include "MuonTable.h"
-#include "raw_bank.hpp"
+#include "MuonRaw.h"
 #include "MuonDefinitions.cuh"
 #include <cassert>
 
@@ -33,10 +33,10 @@ public:
 
   MuonRawToHits() {}
 
-  void operator()( const LHCb::RawEvent& event, Muon::HitsSoA* hitsSoA) const;
+  void operator()(Muon::MuonRawEvent& event, Muon::HitsSoA* hitsSoA) const;
 
 private:
-  void decodeTileAndTDC( const LHCb::RawEvent&, std::array<std::vector<Digit>, 4>& ) const;
+  void decodeTileAndTDC(Muon::MuonRawEvent& , std::array<std::vector<Digit>, 4>& ) const;
 
   std::array<MuonLayout, 2> makeStripLayouts( const unsigned int, const unsigned int ) const;
 

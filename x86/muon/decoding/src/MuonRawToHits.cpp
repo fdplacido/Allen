@@ -42,6 +42,7 @@ namespace {
           {-6052, -2976, -1488, -744,
               744, 1488, 2976, 6052}}};
 
+  /*
   int nDigits(const LHCb::RawBank &rb) {
     auto range = rb.range<unsigned short>();
     if (range.empty()) return 0;
@@ -54,6 +55,7 @@ namespace {
     return std::accumulate(rbs.begin(), rbs.end(), 0,
                            [](int s, const LHCb::RawBank *rb) { return rb ? s + nDigits(*rb) : s; });
   }
+   */
 
   [[gnu::noreturn]] void throw_exception(MuonRawHits::ErrorCode ec, const char *tag) {
     throw tag;
@@ -64,16 +66,17 @@ namespace {
 //=============================================================================
 // Main execution
 //=============================================================================
-void MuonRawToHits::operator()(const LHCb::RawEvent& raw, Muon::HitsSoA* hitsSoA) const {
+void MuonRawToHits::operator()(Muon::MuonRawEvent& rawEvent, Muon::HitsSoA* hitsSoA) const {
+
   size_t currentHitsIndex = 0;
-  const auto&                       mb = raw.banks( LHCb::RawBank::Muon );
+  //const auto&                       mb = raw.banks( LHCb::RawBank::Muon );
   std::array<std::vector<Digit>, 4> decoding;
-  for ( auto& decode : decoding ) { decode.reserve( nDigits( mb ) ); }
+  //for ( auto& decode : decoding ) { decode.reserve( nDigits( mb ) ); }
 
   //std::array<std::array<CommonMuonHits, 4>, 4> commonMuonHitsByStationAndRegion;
 
   // decode tha data
-  decodeTileAndTDC( raw, decoding );
+  decodeTileAndTDC( rawEvent, decoding );
 
   // sort the digits to ease the crossing
   // the hits come directly sorted by station due to tell1 reading
@@ -109,9 +112,9 @@ void MuonRawToHits::operator()(const LHCb::RawEvent& raw, Muon::HitsSoA* hitsSoA
   unsigned int currentStation = 0;
   for (int i = 1; i < Muon::Constants::max_numhits_per_event; i++) {
     int id = hitsSoA -> tile[i];
-    if (Muon::MuonTileID.station(id) != currentStation) {
+    if (Muon::MuonTileID::station(id) != currentStation) {
       hitsSoA -> number_of_hits_per_station[currentStation] =
-          i - (hitsSoA -> number_of_hits_per_station[max(0, currentStation - 1)]);
+          i - (hitsSoA -> number_of_hits_per_station[std::max((unsigned int)0, currentStation - 1)]);
       if (currentStation == Muon::Constants::n_stations - 1) {
         break;
       }
@@ -119,6 +122,7 @@ void MuonRawToHits::operator()(const LHCb::RawEvent& raw, Muon::HitsSoA* hitsSoA
       currentStation++;
     }
   }
+
 }
 
 //=============================================================================
@@ -241,32 +245,24 @@ void MuonRawToHits::addCoordsCrossingMap(DigitsRange& digits, Muon::HitsSoA* hit
 }
 
 
-void MuonRawToHits::decodeTileAndTDC( const LHCb::RawEvent&             rawdata,
-                                            std::array<std::vector<Digit>, 4>& storage ) const {
+void MuonRawToHits::decodeTileAndTDC(Muon::MuonRawEvent& rawEvent, std::array<std::vector<Digit>, 4>& storage ) const {
 
   // array of vectors of hits
   // each element of the array correspond to hits from a single station
   // this will ease the sorting after
 
-  const auto& mb = rawdata.banks( LHCb::RawBank::Muon );
-  if ( mb.empty() ) {
-    //warning() << "Ther is no Muon raw Bank in this event" << endmsg;
-    return;
-  }
-
-  for ( const auto& r : mb ) {
-    if ( LHCb::RawBank::MagicPattern != r->magic() ) { OOPS( MuonRawHits::ErrorCode::BAD_MAGIC ); }
-    unsigned int tell1Number = r->sourceID();
-    if ( tell1Number >= MuonDAQHelper_maxTell1Number ) { OOPS( MuonRawHits::ErrorCode::INVALID_TELL1 ); }
+  for (int i = 0; i + 1 < rawEvent.number_of_raw_banks; i++) {
+    auto r = rawEvent.getMuonBank(i);
+    unsigned int tell1Number = r.sourceID;
+    //if ( tell1Number >= MuonDAQHelper_maxTell1Number ) { OOPS( MuonRawHits::ErrorCode::INVALID_TELL1 ); }
 
     // decide in which array put the digits according to the Tell1 they come from
     const int inarray = ( tell1Number < 4 ? 0 : tell1Number < 6 ? 1 : tell1Number < 8 ? 2 : 3 );
 
     // minimum length is 3 words --> 12 bytes
-    if ( r->size() < 12 ) { OOPS( MuonRawHits::ErrorCode::BANK_TOO_SHORT ); }
-    auto range         = r->range<unsigned short>();
+    auto range         = r.range<unsigned short>();
     auto preamble_size = 2 * ( ( range[0] + 3 ) / 2 );
-    if ( range.size() < preamble_size ) { OOPS( MuonRawHits::ErrorCode::PADDING_TOO_LONG ); }
+    //if ( range.size() < preamble_size ) { OOPS( MuonRawHits::ErrorCode::PADDING_TOO_LONG ); }
     range = range.subspan( preamble_size );
 
     for ( int i = 0; i < 4; i++ ) {
@@ -284,7 +280,7 @@ void MuonRawToHits::decodeTileAndTDC( const LHCb::RawEvent&             rawdata,
         unsigned int pippo = tile.id();
         if ( pippo != 0 ) {
           //if ( UNLIKELY( msgLevel( MSG::DEBUG ) ) ) debug() << " valid  add " << add << " " << tile << endmsg;
-          storage[inarray].emplace_back( Digit{tile, tdc_value} );
+          storage[inarray].push_back( Digit{tile, tdc_value} );
         } else {
           //info() << "invalid add " << add << " " << tile << endmsg;
         }
@@ -293,4 +289,5 @@ void MuonRawToHits::decodeTileAndTDC( const LHCb::RawEvent&             rawdata,
     }
     assert( range.empty() );
   }
+
 }

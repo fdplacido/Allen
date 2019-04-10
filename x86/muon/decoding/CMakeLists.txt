@@ -1,6 +1,5 @@
 include_directories(include)
 include_directories(${CMAKE_SOURCE_DIR}/cuda/muon/common/include)
-include_directories(${CMAKE_SOURCE_DIR}/mdf/include)
 include_directories(${CMAKE_SOURCE_DIR}/main/include)
 
 file(GLOB x86MuonDecoding_cpp "src/*cpp")
@@ -17,7 +16,7 @@ if ( ROOT_FOUND )
     target_include_directories(x86MuonDecoding BEFORE PRIVATE
             ${ROOT_INCLUDE_DIRS}
             )
-    target_link_libraries(x86VeloUT PRIVATE
+    target_link_libraries(x86MuonDecoding PRIVATE
             ${ROOT_LIBRARIES}
             )
 endif()
