@@ -32,7 +32,7 @@
 #include "StreamWrapper.cuh"
 #include "Constants.cuh"
 #include "MuonDefinitions.cuh"
-#include <Decoding.h>
+#include "Decoding.h"
 
 void printUsage(char* argv[])
 {
@@ -221,6 +221,7 @@ int main(int argc, char* argv[])
   info_cout << "start decode\n";
   MuonRawToHitsDecoder muonRawToHitsDecoder;
   muonRawToHitsDecoder.f();
+  y();
   //muonRawToHitsDecoder.decode(event_reader->events(BankTypes::MUON), event_reader->offsets(BankTypes::MUON), muon_hits_events);
   info_cout << "finish decode\n";
 

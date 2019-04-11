@@ -185,6 +185,7 @@ target_link_libraries(Allen PRIVATE
   TrackChecking
   PVChecking
   CheckClustering
+  x86MuonDecoding
 )
 
 if (ROOT_FOUND)

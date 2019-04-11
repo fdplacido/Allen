@@ -2,6 +2,9 @@
 void MuonRawToHitsDecoder::f() {
 
 }
+void y() {
+
+}
 /*
 void MuonRawToHitsDecoder::decode(gsl::span<char> events, gsl::span<unsigned int> offsets, std::vector<Muon::HitsSoA>& muon_hits_events) {
   std::string file_name_muon_table = "../input/muon/muon_table.bin";
