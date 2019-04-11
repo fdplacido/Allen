@@ -12,6 +12,6 @@ namespace Muon {
   public:
     void read_muon_geometry(const char *raw_input);
 
-    unsigned int getADDInTell1(unsigned int Tell1_num, long ch) const;
+    unsigned int getADDInTell1(unsigned int Tell1_num, unsigned int ch) const;
   };
 };

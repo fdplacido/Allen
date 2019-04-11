@@ -16,7 +16,7 @@ namespace Muon {
       p += sizeof(uint32_t);
       data = (uint16_t*) p;
       last = (uint16_t*) end;
-      m_size = last - data;
+      m_size = end - p;
     }
 
     size_t size() const {
