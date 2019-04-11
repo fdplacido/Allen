@@ -16,8 +16,8 @@ void decode(gsl::span<char> events, gsl::span<unsigned int> offsets, std::vector
   read_muon_table(muon_table_raw_input, &pad, &stripX, &stripY);
 
   memset(muon_geometry_raw_input, 0, sizeof(muon_geometry_raw_input));
-  std::ifstream muon_gometry_file(file_name_muon_table, std::ios::binary);
-  muon_gometry_file.read(muon_table_raw_input, sizeof(muon_geometry_raw_input));
+  std::ifstream muon_gometry_file(file_name_muon_geometry, std::ios::binary);
+  muon_gometry_file.read(muon_geometry_raw_input, sizeof(muon_geometry_raw_input));
   muon_gometry_file.close();
   Muon::MuonGeometry muonGeometry = Muon::MuonGeometry();
   muonGeometry.read_muon_geometry(muon_geometry_raw_input);

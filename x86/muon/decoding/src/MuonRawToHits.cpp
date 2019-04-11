@@ -201,8 +201,8 @@ void MuonRawToHits::decodeTileAndTDC(Muon::MuonRawEvent &rawEvent, std::array<st
   // each element of the array correspond to hits from a single station
   // this will ease the sorting after
 
-  for (int i = 0; i + 1 < rawEvent.number_of_raw_banks; i++) {
-    auto r = rawEvent.getMuonBank(i);
+  for (int bank_index = 0; bank_index + 1 < rawEvent.number_of_raw_banks; bank_index++) {
+    auto r = rawEvent.getMuonBank(bank_index);
     unsigned int tell1Number = r.sourceID;
     //if ( tell1Number >= MuonDAQHelper_maxTell1Number ) { OOPS( MuonRawHits::ErrorCode::INVALID_TELL1 ); }
 

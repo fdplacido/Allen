@@ -1,9 +1,9 @@
 #include "MuonGeometry.h"
 
-unsigned int Muon::MuonGeometry::getADDInTell1( unsigned int Tell1_num, long ch ) const {
+unsigned int Muon::MuonGeometry::getADDInTell1( unsigned int Tell1_num, unsigned int ch ) const {
   Muon::MuonTileID emptyTile;
   if ( Tell1_num <= m_tiles.size() ) {
-    if ( static_cast<unsigned int>( ch ) < ( m_tiles[Tell1_num] ).size() ) {
+    if (ch < ( m_tiles[Tell1_num] ).size() ) {
       return ( m_tiles[Tell1_num] )[ch];
     }
   }
