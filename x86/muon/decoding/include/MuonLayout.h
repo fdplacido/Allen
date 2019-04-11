@@ -16,7 +16,7 @@
 
 #include "MuonTileID.h"
 
-namespace LHCb {
+namespace Muon {
   class MuonTileID;
 }
 

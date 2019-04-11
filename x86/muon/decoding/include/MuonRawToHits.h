@@ -5,10 +5,11 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <cassert>
 #include "MuonTable.h"
 #include "MuonRaw.h"
+#include "MuonGeometry.h"
 #include "MuonDefinitions.cuh"
-#include <cassert>
 
 static const unsigned int MuonDAQHelper_maxTell1Number = 14;
 
@@ -25,10 +26,11 @@ using DigitsRange = std::pair<Digits::iterator, Digits::iterator>;
  */
 class MuonRawToHits {
 public:
-  MuonRawToHits(MuonTable* pad_, MuonTable* stripX_, MuonTable* stripY_) {
+  MuonRawToHits(MuonTable* pad_, MuonTable* stripX_, MuonTable* stripY_, Muon::MuonGeometry* muonGeometry_) {
     pad = pad_;
     stripX = stripX_;
     stripY = stripY_;
+    muonGeometry = muonGeometry_;
   }
 
   MuonRawToHits() {}
@@ -46,5 +48,5 @@ private:
   MuonTable* pad;
   MuonTable* stripX;
   MuonTable* stripY;
-
+  Muon::MuonGeometry* muonGeometry;
 };

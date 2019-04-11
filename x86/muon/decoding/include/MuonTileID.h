@@ -19,6 +19,14 @@ namespace Muon {
     }
 
   public:
+    MuonTileID(unsigned int muonid) {
+      m_muonid = muonid;
+    }
+
+    MuonTileID() {
+      m_muonid = 0;
+    }
+
     static unsigned int station(unsigned int id) {
       return (id & MuonBase::MaskStation) >> MuonBase::ShiftStation;
     }
@@ -47,10 +55,6 @@ namespace Muon {
 
     unsigned int nY() const {
       return (m_muonid & MuonBase::MaskY) >> MuonBase::ShiftY;
-    }
-
-    MuonTileID(unsigned int muonid) {
-      m_muonid = muonid;
     }
 
     void setX(const unsigned int x) {

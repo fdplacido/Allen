@@ -1,6 +1,6 @@
 #include "MuonDefinitions.cuh"
 
-void addAtIndex(size_t index, int tile, float x, float dx, float y, float dy, float z, float dz,
+void Muon::HitsSoA::addAtIndex(size_t index, int tile, float x, float dx, float y, float dy, float z, float dz,
   int uncrossed, unsigned int time, int delta_time, int cluster_size, int region) {
     this -> tile[index] = tile;
     this -> x[index] = x;

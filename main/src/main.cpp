@@ -7,6 +7,7 @@
  *      Started development on February, 2018
  *      CERN
  */
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -209,20 +210,24 @@ int main(int argc, char* argv[])
   std::vector<char> events;
   std::vector<uint> event_offsets;
   std::vector<Muon::HitsSoA> muon_hits_events(number_of_events_requested);
-  /*
+
   read_folder(folder_name_muon_common_hits, number_of_events_requested, events, event_offsets, start_event_offset);
   read_muon_events_into_arrays(
       muon_hits_events.data(), events.data(), event_offsets.data(), number_of_events_requested);
   const int number_of_outputted_hits_per_event = 3;
   check_muon_events(muon_hits_events.data(), number_of_outputted_hits_per_event, number_of_events_requested);
-  */
+
    muon_catboost_model_reader = std::make_unique<CatboostModelReader>(file_name_muon_catboost_model);
 
   info_cout << "start decode\n";
-  MuonRawToHitsDecoder muonRawToHitsDecoder;
-  muonRawToHitsDecoder.f();
-  y();
-  //muonRawToHitsDecoder.decode(event_reader->events(BankTypes::MUON), event_reader->offsets(BankTypes::MUON), muon_hits_events);
+  std::ofstream fs("example.bin", std::ios::out | std::ios::binary | std::ios::app);
+  fs.write(event_reader->events(BankTypes::MUON).begin(), event_reader->events(BankTypes::MUON).size());
+  fs.close();
+  for (int i = 0; i < event_reader->offsets(BankTypes::MUON).size(); i++) {
+    info_cout << (event_reader->offsets(BankTypes::MUON))[i] << " ";
+  }
+  info_cout << "\n";
+  //decode(event_reader->events(BankTypes::MUON), event_reader->offsets(BankTypes::MUON), muon_hits_events, number_of_events_requested);
   info_cout << "finish decode\n";
 
   info_cout << std::endl << "All input datatypes successfully read" << std::endl << std::endl;
