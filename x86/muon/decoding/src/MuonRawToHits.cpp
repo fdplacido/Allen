@@ -1,4 +1,5 @@
 #include "MuonRawToHits.h"
+#include <iostream>
 
 namespace MuonRawHits {
 
@@ -51,16 +52,16 @@ void MuonRawToHits::operator()(Muon::MuonRawEvent &rawEvent, Muon::HitsSoA *hits
   }
 
   for (auto &decode : decoding) {
-    std::vector<DigitsRange, 16> perRegQua;
+    std::vector<DigitsRange> perRegQua;
     unsigned nReg = 0;
     auto it = decode.begin();
     for (auto jt = it; jt != decode.end(); ++jt) {
       if (regionAndQuarter(*jt) != regionAndQuarter(*it)) {
-        perRegQua[nReg++] = make_pair(it, jt);
+        perRegQua.push_back(make_pair(it, jt));
         it = jt;
       }
     }
-    perRegQua[nReg++] = make_pair(it, decode.end());
+    perRegQua.push_back(make_pair(it, decode.end()));
     for (auto &coordsPerRegQua : perRegQua) {
       addCoordsCrossingMap(coordsPerRegQua, hitsSoA, currentHitsIndex);
     }

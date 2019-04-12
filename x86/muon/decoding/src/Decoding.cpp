@@ -2,7 +2,7 @@
 
 char muon_table_raw_input[1200000];
 char muon_geometry_raw_input[200000];
-void decode(gsl::span<char> events, gsl::span<unsigned int> offsets, std::vector<Muon::HitsSoA>& muon_hits_events, uint number_of_events_requested) {
+void decode(gsl::span<char> events, gsl::span<unsigned int> offsets, std::vector<Muon::HitsSoA>& muon_hits_events) {
   std::string file_name_muon_table = "../input/muon/muon_table.bin";
   std::string file_name_muon_geometry = "../input/muon/muon_geometry.bin";
   MuonTable pad = MuonTable();

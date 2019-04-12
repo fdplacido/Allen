@@ -10,4 +10,4 @@
 #include <fstream>
 #include <cstring>
 
-void decode(gsl::span<char> events, gsl::span<unsigned int> offsets, std::vector<Muon::HitsSoA>& muon_hits_events, uint number_of_events_requested);
+void decode(gsl::span<char> events, gsl::span<unsigned int> offsets, std::vector<Muon::HitsSoA>& muon_hits_events);
