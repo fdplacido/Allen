@@ -51,7 +51,7 @@ void MuonRawToHits::operator()(Muon::MuonRawEvent &rawEvent, Muon::HitsSoA *hits
   }
 
   for (auto &decode : decoding) {
-    std::array<DigitsRange, 16> perRegQua;
+    std::vector<DigitsRange, 16> perRegQua;
     unsigned nReg = 0;
     auto it = decode.begin();
     for (auto jt = it; jt != decode.end(); ++jt) {
@@ -61,21 +61,18 @@ void MuonRawToHits::operator()(Muon::MuonRawEvent &rawEvent, Muon::HitsSoA *hits
       }
     }
     perRegQua[nReg++] = make_pair(it, decode.end());
-    return;
     for (auto &coordsPerRegQua : perRegQua) {
       addCoordsCrossingMap(coordsPerRegQua, hitsSoA, currentHitsIndex);
     }
   }
 
-  unsigned int currentStation = 0;
-  for (int i = 1; i < Muon::Constants::max_numhits_per_event; i++) {
-    int id = hitsSoA->tile[i];
+  int currentStation = 0;
+  for (int i = 1; i < currentHitsIndex; i++) {
+    auto id = static_cast<unsigned int>(hitsSoA->tile[i]);
     if (Muon::MuonTileID::station(id) != currentStation) {
+      auto index = std::max(0, currentStation - 1);
       hitsSoA->number_of_hits_per_station[currentStation] =
-          i - (hitsSoA->number_of_hits_per_station[std::max((unsigned int) 0, currentStation - 1)]);
-      if (currentStation == Muon::Constants::n_stations - 1) {
-        break;
-      }
+          i - (hitsSoA->number_of_hits_per_station[index]);
       hitsSoA->station_offsets[currentStation + 1] = i;
       currentStation++;
     }
@@ -201,7 +198,7 @@ void MuonRawToHits::decodeTileAndTDC(Muon::MuonRawEvent &rawEvent, std::array<st
   // each element of the array correspond to hits from a single station
   // this will ease the sorting after
 
-  for (int bank_index = 0; bank_index + 1 < rawEvent.number_of_raw_banks; bank_index++) {
+  for (uint32_t bank_index = 0; bank_index < rawEvent.number_of_raw_banks; bank_index++) {
     auto r = rawEvent.getMuonBank(bank_index);
     unsigned int tell1Number = r.sourceID;
     //if ( tell1Number >= MuonDAQHelper_maxTell1Number ) { OOPS( MuonRawHits::ErrorCode::INVALID_TELL1 ); }
@@ -236,5 +233,4 @@ void MuonRawToHits::decodeTileAndTDC(Muon::MuonRawEvent &rawEvent, std::array<st
     }
     assert(range.empty());
   }
-
 }
