@@ -8,7 +8,6 @@
 import os, sys
 import argparse
 import ROOT
-from ROOT import *
 from ROOT import gStyle
 from ROOT import gROOT
 from ROOT import TStyle
