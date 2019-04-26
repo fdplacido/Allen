@@ -32,7 +32,7 @@ def getEfficiencyHistoNames():
 
 
 def getTrackers():
-    return ["Velo", "Upstream"]  #, "Forward"]
+    return ["Velo", "Upstream", "Forward"]
 
 
 def getGhostHistoNames():
