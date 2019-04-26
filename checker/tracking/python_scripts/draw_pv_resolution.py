@@ -38,6 +38,9 @@ for entry in range(t.GetEntries()):
         reshist[coord].Fill(t.ntrinmcpv,
                             1000. * t.__getattr__("diff_" + coord))
 
+if not os.path.isdir("../../../plotsfornote"):
+  os.mkdir("../../../plotsfornote")
+
 arr = ROOT.TObjArray()
 for coord in ["x", "y", "z"]:
     pvcanv[coord] = ROOT.TCanvas("pvcanv" + coord, "pvcanv" + coord, 900, 800)

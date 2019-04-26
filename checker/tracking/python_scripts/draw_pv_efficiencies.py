@@ -39,4 +39,7 @@ hist_z.Draw()
 canvas.cd(2)
 hist_mult.Draw()
 
+
+if not os.path.isdir("../../../plotsfornote"):
+  os.mkdir("../../../plotsfornote")
 canvas.SaveAs("../../../plotsfornote/PVEfficiencies.pdf")
