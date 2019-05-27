@@ -53,6 +53,4 @@ SEQUENCE_T(
   consolidate_scifi_tracks_t,
   kalman_velo_only_t,
   muon_decoding_t,
-  is_muon_t,
-  muon_catboost_features_extraction_t,
-  muon_catboost_evaluator_t)
+  is_muon_t,)
