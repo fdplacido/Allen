@@ -1,3 +1,6 @@
+> This is a mirror copy of the Allen (LHCb - CERN) framework at v0.8
+> Original repo: https://gitlab.cern.ch/lhcb/Allen
+
 Allen
 =====
 
